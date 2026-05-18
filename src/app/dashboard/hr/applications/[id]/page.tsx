@@ -3,20 +3,12 @@ import { notFound } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth/session';
 import { requireAnyRole } from '@/lib/rbac';
 import { getApplicationForHr } from '@/lib/services/atsService';
+import { STAGE_LABEL, STAGE_TONE } from '@/lib/ats/stages';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { StageActions } from './StageActions';
 import { NoteForm } from './NoteForm';
 import type { CustomQuestion } from '@/types/customQuestions';
-
-const STAGE_LABEL: Record<string, string> = {
-  APPLIED: 'Applied', SCREENING: 'Screening', INTERVIEW: 'Interview',
-  OFFER: 'Offer', HIRED: 'Hired', REJECTED: 'Rejected',
-};
-const STAGE_TONE: Record<string, 'neutral' | 'blue' | 'amber' | 'green' | 'red'> = {
-  APPLIED: 'neutral', SCREENING: 'blue', INTERVIEW: 'blue',
-  OFFER: 'amber', HIRED: 'green', REJECTED: 'red',
-};
 
 export default async function ApplicationDetailPage({ params }: { params: { id: string } }) {
   requireAnyRole(await getSessionUser(), ['SUPER_ADMIN', 'HR_MANAGER']);

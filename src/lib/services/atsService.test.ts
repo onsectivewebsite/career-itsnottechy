@@ -100,6 +100,29 @@ describe('moveStage', () => {
     const r = await moveStage({ applicationId: 'nope', toStage: 'SCREENING', actorUserId: hr.id });
     expect(r).toEqual({ ok: false, reason: 'NOT_FOUND' });
   });
+
+  it('two concurrent moves from APPLIED: exactly one wins, audit has one row', async () => {
+    const { hr, applicationId } = await setupOpenJobWithApplication();
+    __resetTransportForTests();
+
+    const [a, b] = await Promise.all([
+      moveStage({ applicationId, toStage: 'SCREENING', actorUserId: hr.id }),
+      moveStage({ applicationId, toStage: 'REJECTED',  actorUserId: hr.id }),
+    ]);
+
+    const wins   = [a, b].filter((r) => r.ok);
+    const losses = [a, b].filter((r) => !r.ok);
+    expect(wins).toHaveLength(1);
+    expect(losses).toHaveLength(1);
+    expect(losses[0]).toEqual({ ok: false, reason: 'INVALID_TRANSITION' });
+
+    // Only one audit row for the stage change, not two.
+    const audits = await prisma.auditLog.findMany({ where: { action: 'APP_STAGE_CHANGED' } });
+    expect(audits).toHaveLength(1);
+
+    // Only one outgoing email, not two.
+    expect(__recordedSendsForTests()).toHaveLength(1);
+  });
 });
 
 describe('getApplicationForHr', () => {

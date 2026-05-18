@@ -5,20 +5,9 @@ import { getSessionUser } from '@/lib/auth/session';
 import { requireAnyRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { listApplicationsForJob } from '@/lib/services/atsService';
+import { STAGE_ORDER, STAGE_LABEL, STAGE_TONE } from '@/lib/ats/stages';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-
-const STAGE_ORDER: AppStage[] = ['APPLIED', 'SCREENING', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED'];
-
-const STAGE_LABEL: Record<AppStage, string> = {
-  APPLIED: 'Applied', SCREENING: 'Screening', INTERVIEW: 'Interview',
-  OFFER: 'Offer', HIRED: 'Hired', REJECTED: 'Rejected',
-};
-
-const STAGE_TONE: Record<AppStage, 'neutral' | 'blue' | 'amber' | 'green' | 'red'> = {
-  APPLIED: 'neutral', SCREENING: 'blue', INTERVIEW: 'blue',
-  OFFER: 'amber', HIRED: 'green', REJECTED: 'red',
-};
 
 export default async function ApplicantsPage({ params }: { params: { id: string } }) {
   requireAnyRole(await getSessionUser(), ['SUPER_ADMIN', 'HR_MANAGER']);
