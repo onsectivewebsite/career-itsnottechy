@@ -9,6 +9,8 @@ export type TemplateData = {
   'welcome-candidate':      { name: string; dashboardUrl: string };
   'password-reset':         { name: string; resetUrl: string };
   'application-received':   { name: string; jobTitle: string; dashboardUrl: string };
+  'application-status-changed': { name: string; jobTitle: string; stageLabel: string; stageBlurb: string; dashboardUrl: string };
+  'offer-sent':                 { name: string; jobTitle: string; dashboardUrl: string };
 };
 
 export type TemplateName = keyof TemplateData;
@@ -20,6 +22,8 @@ const subjects: { [K in TemplateName]: (data: TemplateData[K]) => string } = {
   'welcome-candidate':      () => 'Welcome to ItsNotTechy Careers',
   'password-reset':         () => 'Reset your ItsNotTechy Careers password',
   'application-received':   (data) => `We received your application: ${data.jobTitle}`,
+  'application-status-changed': (data) => `${data.jobTitle}: ${data.stageLabel}`,
+  'offer-sent':                 (data) => `An offer for ${data.jobTitle}`,
 };
 
 export function subjectFor<T extends TemplateName>(name: T, data: TemplateData[T]): string {
