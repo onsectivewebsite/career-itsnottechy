@@ -5,9 +5,10 @@ import { interpolate, wrapInLayout } from './render';
 // === Data shapes per template ===
 
 export type TemplateData = {
-  'invite-staff':       { name: string; roleLabel: string; acceptUrl: string };
-  'welcome-candidate':  { name: string; dashboardUrl: string };
-  'password-reset':     { name: string; resetUrl: string };
+  'invite-staff':           { name: string; roleLabel: string; acceptUrl: string };
+  'welcome-candidate':      { name: string; dashboardUrl: string };
+  'password-reset':         { name: string; resetUrl: string };
+  'application-received':   { name: string; jobTitle: string; dashboardUrl: string };
 };
 
 export type TemplateName = keyof TemplateData;
@@ -15,9 +16,10 @@ export type TemplateName = keyof TemplateData;
 // === Subject lines ===
 
 const subjects: { [K in TemplateName]: (data: TemplateData[K]) => string } = {
-  'invite-staff':      () => "You're invited to ItsNotTechy Careers",
-  'welcome-candidate': () => 'Welcome to ItsNotTechy Careers',
-  'password-reset':    () => 'Reset your ItsNotTechy Careers password',
+  'invite-staff':           () => "You're invited to ItsNotTechy Careers",
+  'welcome-candidate':      () => 'Welcome to ItsNotTechy Careers',
+  'password-reset':         () => 'Reset your ItsNotTechy Careers password',
+  'application-received':   (data) => `We received your application: ${data.jobTitle}`,
 };
 
 export function subjectFor<T extends TemplateName>(name: T, data: TemplateData[T]): string {
