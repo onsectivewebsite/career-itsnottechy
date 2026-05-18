@@ -21,12 +21,25 @@ export async function issueInviteToken(userId: string): Promise<string> {
 }
 
 export async function consumeInviteToken(token: string): Promise<ConsumeResult> {
+  // Atomic claim: only succeeds if token exists, unused, and not yet expired.
+  // Prevents double-consumption when email link previewers (Outlook, scanners) GET
+  // the page in parallel with the real user POST.
+  const now = new Date();
+  const claim = await prisma.inviteToken.updateMany({
+    where: { token, usedAt: null, expiresAt: { gt: now } },
+    data: { usedAt: now },
+  });
+
+  if (claim.count === 1) {
+    const row = await prisma.inviteToken.findUnique({ where: { token } });
+    return { ok: true, userId: row!.userId };
+  }
+
+  // Claim failed — diagnose the reason.
   const row = await prisma.inviteToken.findUnique({ where: { token } });
   if (!row) return { ok: false, reason: 'NOT_FOUND' };
   if (row.usedAt) return { ok: false, reason: 'ALREADY_USED' };
-  if (row.expiresAt.getTime() < Date.now()) return { ok: false, reason: 'EXPIRED' };
-  await prisma.inviteToken.update({ where: { id: row.id }, data: { usedAt: new Date() } });
-  return { ok: true, userId: row.userId };
+  return { ok: false, reason: 'EXPIRED' };
 }
 
 export async function issuePasswordResetToken(userId: string): Promise<string> {
@@ -38,10 +51,19 @@ export async function issuePasswordResetToken(userId: string): Promise<string> {
 }
 
 export async function consumePasswordResetToken(token: string): Promise<ConsumeResult> {
+  const now = new Date();
+  const claim = await prisma.passwordResetToken.updateMany({
+    where: { token, usedAt: null, expiresAt: { gt: now } },
+    data: { usedAt: now },
+  });
+
+  if (claim.count === 1) {
+    const row = await prisma.passwordResetToken.findUnique({ where: { token } });
+    return { ok: true, userId: row!.userId };
+  }
+
   const row = await prisma.passwordResetToken.findUnique({ where: { token } });
   if (!row) return { ok: false, reason: 'NOT_FOUND' };
   if (row.usedAt) return { ok: false, reason: 'ALREADY_USED' };
-  if (row.expiresAt.getTime() < Date.now()) return { ok: false, reason: 'EXPIRED' };
-  await prisma.passwordResetToken.update({ where: { id: row.id }, data: { usedAt: new Date() } });
-  return { ok: true, userId: row.userId };
+  return { ok: false, reason: 'EXPIRED' };
 }

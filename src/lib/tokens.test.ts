@@ -81,6 +81,22 @@ describe('invite token lifecycle', () => {
     const r = await consumeInviteToken(token);
     expect(r).toEqual({ ok: false, reason: 'EXPIRED' });
   });
+
+  it('two concurrent consumes of the same valid token: exactly one wins', async () => {
+    const user = await makeUser();
+    const token = await issueInviteToken(user.id);
+
+    const [a, b] = await Promise.all([
+      consumeInviteToken(token),
+      consumeInviteToken(token),
+    ]);
+
+    const successes = [a, b].filter((r) => r.ok);
+    const failures = [a, b].filter((r) => !r.ok);
+    expect(successes).toHaveLength(1);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toEqual({ ok: false, reason: 'ALREADY_USED' });
+  });
 });
 
 describe('password reset token lifecycle', () => {
