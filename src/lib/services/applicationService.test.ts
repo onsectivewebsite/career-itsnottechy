@@ -238,6 +238,7 @@ describe('submitApplication auto-links a matching referral', () => {
     const cand = await prisma.user.create({
       data: { email: 'x@x.com', name: 'X', role: 'CANDIDATE', candidateProfile: { create: {} } },
     });
+    __resetTransportForTests();
     const r = await submitApplication({
       jobId: j.jobId, candidateUserId: cand.id,
       input: { jobId: j.jobId, resumeUrl: 'r.pdf', customAnswers: {} },
@@ -247,8 +248,15 @@ describe('submitApplication auto-links a matching referral', () => {
 
     const refAfter = await prisma.referral.findUniqueOrThrow({ where: { id: ref.id } });
     expect(refAfter.applicationId).toBe(r.applicationId);
+    expect(refAfter.status).toBe('CONVERTED');
 
     const appAfter = await prisma.application.findUniqueOrThrow({ where: { id: r.applicationId } });
     expect(appAfter.referralId).toBe(ref.id);
+
+    // 2 emails: candidate (application-received) + referrer (referral-status-update)
+    const sends = __recordedSendsForTests();
+    expect(sends.length).toBe(2);
+    expect(sends.some((s) => s.to === cand.email)).toBe(true);
+    expect(sends.some((s) => s.to === emp.email)).toBe(true);
   });
 });

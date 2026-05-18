@@ -174,7 +174,7 @@ describe('notifyReferrerOnStageChange', () => {
     expect(__recordedSendsForTests()).toHaveLength(0);
   });
 
-  it('bumps referral.status to CONVERTED on the first forward stage move', async () => {
+  it('bumps referral.status to REJECTED when stage moves to REJECTED', async () => {
     const { jobId } = await setupOpenJob();
     const emp = await makeEmployee();
     await submitReferral({ referringUserId: emp.id, input: { jobId, candidateName: 'C', candidateEmail: 'c@x.com', relationship: 'r' } });
@@ -185,9 +185,9 @@ describe('notifyReferrerOnStageChange', () => {
     const app = await prisma.application.create({
       data: { jobId, candidateUserId: cand.id, resumeUrl: 'r.pdf', referralId: ref.id },
     });
-    await notifyReferrerOnStageChange({ applicationId: app.id, newStage: 'SCREENING' });
+    await notifyReferrerOnStageChange({ applicationId: app.id, newStage: 'REJECTED' });
 
     const after = await prisma.referral.findUniqueOrThrow({ where: { id: ref.id } });
-    expect(after.status).toBe('CONVERTED');
+    expect(after.status).toBe('REJECTED');
   });
 });

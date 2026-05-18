@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { recordAudit } from '@/lib/audit';
 import { sendEmail } from '@/lib/email';
 import { applicationInputSchema } from '@/lib/validation/jobs';
+import { STAGE_LABEL } from '@/lib/ats/stages';
 import type { CustomQuestion } from '@/types/customQuestions';
 
 export type SubmitResult =
@@ -47,23 +48,34 @@ export async function submitApplication(args: {
     throw err;
   }
 
-  // Auto-link the application to a matching pending referral (if any).
-  // Update only if there's exactly one matching referral not yet linked.
+  // Per spec §8.1: if a pending referral matches, link bidirectionally,
+  // bump status to CONVERTED, and notify the referrer.
   const matchingReferral = await prisma.referral.findFirst({
-    where: {
-      jobId: args.jobId,
-      candidateEmail: candidate.email,
-      applicationId: null,
-    },
+    where: { jobId: args.jobId, candidateEmail: candidate.email, applicationId: null },
+    orderBy: { createdAt: 'asc' },
+    include: { referringUser: { select: { id: true, name: true, email: true } } },
   });
   if (matchingReferral) {
-    await prisma.referral.update({
-      where: { id: matchingReferral.id },
-      data: { applicationId: app.id },
-    });
-    await prisma.application.update({
-      where: { id: app.id },
-      data: { referralId: matchingReferral.id },
+    await prisma.$transaction([
+      prisma.referral.update({
+        where: { id: matchingReferral.id },
+        data: { applicationId: app.id, status: 'CONVERTED' },
+      }),
+      prisma.application.update({
+        where: { id: app.id },
+        data: { referralId: matchingReferral.id },
+      }),
+    ]);
+    await sendEmail({
+      to: matchingReferral.referringUser.email,
+      template: 'referral-status-update',
+      data: {
+        referrerName: matchingReferral.referringUser.name,
+        candidateName: candidate.name,
+        jobTitle: job.title,
+        stageLabel: STAGE_LABEL['APPLIED'],
+        dashboardUrl: `${process.env.APP_URL ?? ''}/dashboard/employee/referrals`,
+      },
     });
   }
 

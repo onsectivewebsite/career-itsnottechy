@@ -126,16 +126,12 @@ export async function notifyReferrerOnStageChange(args: {
   });
   if (!app || !app.referral) return;
 
-  // Bump referral status on forward moves; mark REJECTED if the application is rejected.
+  // CONVERTED is set at apply time (applicationService.submitApplication).
+  // Here we only need to flip to REJECTED if the stage move was a rejection.
   if (args.newStage === 'REJECTED' && app.referral.status !== 'REJECTED') {
     await prisma.referral.update({
       where: { id: app.referral.id },
       data: { status: 'REJECTED' },
-    });
-  } else if (args.newStage !== 'APPLIED' && app.referral.status !== 'CONVERTED' && app.referral.status !== 'REJECTED') {
-    await prisma.referral.update({
-      where: { id: app.referral.id },
-      data: { status: 'CONVERTED' },
     });
   }
 
