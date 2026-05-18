@@ -31,7 +31,9 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
             <p className="text-sm text-slate-500">Applied for {app.job.title} &middot; {app.createdAt.toISOString().slice(0, 10)}</p>
           </div>
           <div className="flex items-center gap-2">
-            {app.referral && <Badge tone="blue">Referred</Badge>}
+            {app.referral && (
+              <Badge tone="blue">Referred by {app.referral.referringUser.name}</Badge>
+            )}
             <Badge tone={STAGE_TONE[app.stage]}>{STAGE_LABEL[app.stage]}</Badge>
           </div>
         </div>
