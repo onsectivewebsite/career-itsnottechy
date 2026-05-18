@@ -1,4 +1,5 @@
 import type { AppStage } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { recordAudit } from '@/lib/audit';
 import { sendEmail } from '@/lib/email';
@@ -19,27 +20,26 @@ export async function submitReferral(args: {
   const job = await prisma.job.findUnique({ where: { id: parsed.data.jobId } });
   if (!job || job.status !== 'OPEN') return { ok: false, reason: 'JOB_NOT_OPEN' };
 
-  // Pre-check for duplicate (same referrer + email + job).
-  const dupe = await prisma.referral.findFirst({
-    where: {
-      referringUserId: args.referringUserId,
-      candidateEmail: parsed.data.candidateEmail,
-      jobId: parsed.data.jobId,
-    },
-  });
-  if (dupe) return { ok: false, reason: 'DUPLICATE' };
-
-  const referral = await prisma.referral.create({
-    data: {
-      referringUserId: args.referringUserId,
-      jobId: parsed.data.jobId,
-      candidateName: parsed.data.candidateName,
-      candidateEmail: parsed.data.candidateEmail,
-      relationship: parsed.data.relationship,
-      resumeUrl: parsed.data.resumeUrl ?? null,
-      status: 'SUBMITTED',
-    },
-  });
+  let referral;
+  try {
+    referral = await prisma.referral.create({
+      data: {
+        referringUserId: args.referringUserId,
+        jobId: parsed.data.jobId,
+        candidateName: parsed.data.candidateName,
+        candidateEmail: parsed.data.candidateEmail,
+        relationship: parsed.data.relationship,
+        resumeUrl: parsed.data.resumeUrl ?? null,
+        status: 'SUBMITTED',
+      },
+    });
+  } catch (err) {
+    // P2002 — unique constraint on (referringUserId, jobId, candidateEmail).
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      return { ok: false, reason: 'DUPLICATE' };
+    }
+    throw err;
+  }
 
   const referrer = await prisma.user.findUniqueOrThrow({ where: { id: args.referringUserId } });
 

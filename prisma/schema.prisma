@@ -223,6 +223,7 @@ model Referral {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
+  @@unique([referringUserId, jobId, candidateEmail], name: "uniq_referral_per_employee_candidate_job")
   @@index([referringUserId])
   @@index([candidateEmail, jobId])
 }
