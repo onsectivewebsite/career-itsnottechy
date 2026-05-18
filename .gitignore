@@ -1,0 +1,44 @@
+# Node
+node_modules/
+.pnp
+.pnp.js
+.npm
+.yarn-integrity
+
+# Build
+.next/
+out/
+build/
+dist/
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Testing
+coverage/
+.nyc_output/
+
+# Prisma (we DO commit migrations and schema)
+# (nothing here on purpose)
+
+# Uploads (local dev)
+uploads/
