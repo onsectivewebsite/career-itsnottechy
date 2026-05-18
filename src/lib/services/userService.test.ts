@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { prisma } from '@/lib/prisma';
 import { resetDb } from '@/lib/test/db';
-import { registerCandidate, inviteStaff } from './userService';
+import {
+  registerCandidate,
+  inviteStaff,
+  acceptInvite,
+  setNewPasswordWithResetToken,
+  requestPasswordReset,
+} from './userService';
+import { issueInviteToken, issuePasswordResetToken } from '@/lib/tokens';
 import { verifyPassword } from '@/lib/password';
 import { __recordedSendsForTests, __resetTransportForTests } from '@/lib/email/transport';
 
@@ -121,5 +128,69 @@ describe('inviteStaff', () => {
       invitedByUserId: 'system',
     });
     expect(r).toEqual({ ok: false, reason: 'EMPLOYEE_CODE_TAKEN' });
+  });
+});
+
+describe('acceptInvite', () => {
+  beforeEach(async () => { await resetDb(); __resetTransportForTests(); });
+
+  it('sets password and marks token used', async () => {
+    const u = await prisma.user.create({
+      data: { email: 'inv@x.com', name: 'Inv', role: 'EMPLOYEE' },
+    });
+    const token = await issueInviteToken(u.id);
+
+    const r = await acceptInvite({ token, password: 'Hunter2pass' });
+    expect(r).toEqual({ ok: true, userId: u.id });
+
+    const updated = await prisma.user.findUnique({ where: { id: u.id } });
+    expect(updated?.passwordHash).not.toBeNull();
+    expect(await verifyPassword('Hunter2pass', updated!.passwordHash)).toBe(true);
+
+    const tokenRow = await prisma.inviteToken.findUnique({ where: { token } });
+    expect(tokenRow?.usedAt).not.toBeNull();
+  });
+
+  it('fails on bad token', async () => {
+    const r = await acceptInvite({ token: 'nope', password: 'Hunter2pass' });
+    expect(r).toEqual({ ok: false, reason: 'NOT_FOUND' });
+  });
+});
+
+describe('requestPasswordReset', () => {
+  beforeEach(async () => { await resetDb(); __resetTransportForTests(); });
+
+  it('sends reset email when user exists', async () => {
+    await prisma.user.create({
+      data: { email: 'a@x.com', name: 'A', role: 'CANDIDATE', passwordHash: 'x' },
+    });
+    await requestPasswordReset('a@x.com');
+    expect(__recordedSendsForTests()).toHaveLength(1);
+    expect(__recordedSendsForTests()[0]?.to).toBe('a@x.com');
+
+    const tokens = await prisma.passwordResetToken.findMany();
+    expect(tokens).toHaveLength(1);
+  });
+
+  it('does NOT reveal whether the user exists (no error, no email)', async () => {
+    await requestPasswordReset('ghost@x.com');
+    expect(__recordedSendsForTests()).toHaveLength(0);
+    const tokens = await prisma.passwordResetToken.findMany();
+    expect(tokens).toHaveLength(0);
+  });
+});
+
+describe('setNewPasswordWithResetToken', () => {
+  beforeEach(async () => { await resetDb(); });
+
+  it('updates password and consumes token', async () => {
+    const u = await prisma.user.create({
+      data: { email: 'a@x.com', name: 'A', role: 'CANDIDATE', passwordHash: 'old' },
+    });
+    const token = await issuePasswordResetToken(u.id);
+    const r = await setNewPasswordWithResetToken({ token, password: 'NewPass123' });
+    expect(r).toEqual({ ok: true, userId: u.id });
+    const updated = await prisma.user.findUnique({ where: { id: u.id } });
+    expect(await verifyPassword('NewPass123', updated!.passwordHash)).toBe(true);
   });
 });
