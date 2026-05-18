@@ -41,9 +41,11 @@ export async function submitApplicationAction(
 
   if (!r.ok) {
     const msg =
-      r.reason === 'JOB_NOT_OPEN'    ? 'This role is no longer accepting applications.' :
-      r.reason === 'ALREADY_APPLIED' ? "You've already applied to this role." :
-                                       'Some answers are missing or invalid.';
+      r.reason === 'JOB_NOT_OPEN'        ? 'This role is no longer accepting applications.' :
+      r.reason === 'DEADLINE_PASSED'     ? 'The deadline for this role has passed.' :
+      r.reason === 'ALREADY_APPLIED'     ? "You've already applied to this role." :
+      r.reason === 'CANDIDATE_NOT_FOUND' ? 'Could not load your account. Please sign in again.' :
+                                           'Some answers are missing or invalid.';
     return { error: msg };
   }
 

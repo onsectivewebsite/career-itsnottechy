@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { PublicNav } from '@/components/PublicNav';
-import { listPublicJobs } from '@/lib/services/jobService';
+import { listPublicJobs, type PublicJobFilters } from '@/lib/services/jobService';
 import { JobFilters } from '@/components/jobs/JobFilters';
 import { Badge } from '@/components/ui/Badge';
 
@@ -9,12 +9,26 @@ export const metadata = { title: 'Open roles · ItsNotTechy Careers' };
 const LOCATION_LABEL: Record<string, string> = { REMOTE: 'Remote', ONSITE: 'Onsite', HYBRID: 'Hybrid' };
 const TYPE_LABEL:     Record<string, string> = { FULL_TIME: 'Full-time', PART_TIME: 'Part-time', CONTRACT: 'Contract', INTERN: 'Intern' };
 
+const LOCATION_VALUES = ['REMOTE', 'ONSITE', 'HYBRID'] as const;
+const TYPE_VALUES     = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERN'] as const;
+
+function narrowEnum<T extends readonly string[]>(allowed: T, raw: unknown): T[number] | undefined {
+  return typeof raw === 'string' && (allowed as readonly string[]).includes(raw) ? (raw as T[number]) : undefined;
+}
+
 export default async function JobsPage({
   searchParams,
 }: {
-  searchParams: { q?: string; department?: string; locationType?: 'REMOTE' | 'ONSITE' | 'HYBRID'; type?: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERN' };
+  searchParams: Record<string, string | string[] | undefined>;
 }) {
-  const jobs = await listPublicJobs(searchParams);
+  // searchParams at runtime is arbitrary query-string input — narrow before passing to Prisma.
+  const filters: PublicJobFilters = {
+    q:            typeof searchParams.q          === 'string' ? searchParams.q          : undefined,
+    department:   typeof searchParams.department === 'string' ? searchParams.department : undefined,
+    locationType: narrowEnum(LOCATION_VALUES, searchParams.locationType),
+    type:         narrowEnum(TYPE_VALUES,     searchParams.type),
+  };
+  const jobs = await listPublicJobs(filters);
 
   return (
     <>

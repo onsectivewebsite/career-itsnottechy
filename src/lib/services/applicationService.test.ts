@@ -159,3 +159,60 @@ describe('getApplicationForCandidate', () => {
     expect(await getApplicationForCandidate(r.applicationId, b.id)).toBeNull();
   });
 });
+
+describe('submitApplication — deadline + concurrency', () => {
+  beforeEach(async () => {
+    process.env.EMAIL_TEST_MODE = 'true';
+    __resetTransportForTests();
+    await resetDb();
+  });
+
+  it('rejects with DEADLINE_PASSED when job deadline is in the past', async () => {
+    const hr = await makeHr();
+    const created = await createJob({
+      input: { ...baseJob, deadline: new Date(Date.now() + 60_000) }, // future at creation
+      postedByUserId: hr.id,
+    });
+    if (!created.ok) throw new Error();
+    await publishJob({ jobId: created.jobId, actorUserId: hr.id });
+
+    // Force the deadline into the past via direct DB write (simulates time passing).
+    await prisma.job.update({
+      where: { id: created.jobId },
+      data: { deadline: new Date(Date.now() - 1000) },
+    });
+
+    const cand = await makeCandidate();
+    const r = await submitApplication({
+      jobId: created.jobId,
+      candidateUserId: cand.id,
+      input: { jobId: created.jobId, resumeUrl: 'r.pdf', customAnswers: {} },
+    });
+    expect(r).toEqual({ ok: false, reason: 'DEADLINE_PASSED' });
+  });
+
+  it('two concurrent submits from the same candidate: exactly one wins (P2002 caught)', async () => {
+    const hr = await makeHr();
+    const job = await createJob({ input: baseJob, postedByUserId: hr.id });
+    if (!job.ok) throw new Error();
+    await publishJob({ jobId: job.jobId, actorUserId: hr.id });
+    const cand = await makeCandidate();
+
+    const [a, b] = await Promise.all([
+      submitApplication({
+        jobId: job.jobId, candidateUserId: cand.id,
+        input: { jobId: job.jobId, resumeUrl: 'r1.pdf', customAnswers: {} },
+      }),
+      submitApplication({
+        jobId: job.jobId, candidateUserId: cand.id,
+        input: { jobId: job.jobId, resumeUrl: 'r2.pdf', customAnswers: {} },
+      }),
+    ]);
+
+    const wins = [a, b].filter((r) => r.ok);
+    const losses = [a, b].filter((r) => !r.ok);
+    expect(wins).toHaveLength(1);
+    expect(losses).toHaveLength(1);
+    expect(losses[0]).toEqual({ ok: false, reason: 'ALREADY_APPLIED' });
+  });
+});
