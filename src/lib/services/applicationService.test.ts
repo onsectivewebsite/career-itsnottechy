@@ -216,3 +216,39 @@ describe('submitApplication — deadline + concurrency', () => {
     expect(losses[0]).toEqual({ ok: false, reason: 'ALREADY_APPLIED' });
   });
 });
+
+describe('submitApplication auto-links a matching referral', () => {
+  beforeEach(async () => {
+    process.env.EMAIL_TEST_MODE = 'true';
+    __resetTransportForTests();
+    await resetDb();
+  });
+
+  it('links application <-> referral when a pending referral matches', async () => {
+    const hr = await prisma.user.create({ data: { email: 'hr@x.com', name: 'HR', role: 'HR_MANAGER' } });
+    const j = await createJob({ input: baseJob, postedByUserId: hr.id });
+    if (!j.ok) throw new Error();
+    await publishJob({ jobId: j.jobId, actorUserId: hr.id });
+
+    const emp = await prisma.user.create({ data: { email: 'emp@x.com', name: 'Emp', role: 'EMPLOYEE' } });
+    const ref = await prisma.referral.create({
+      data: { referringUserId: emp.id, jobId: j.jobId, candidateName: 'X', candidateEmail: 'x@x.com', relationship: 'r', status: 'CONTACTED' },
+    });
+
+    const cand = await prisma.user.create({
+      data: { email: 'x@x.com', name: 'X', role: 'CANDIDATE', candidateProfile: { create: {} } },
+    });
+    const r = await submitApplication({
+      jobId: j.jobId, candidateUserId: cand.id,
+      input: { jobId: j.jobId, resumeUrl: 'r.pdf', customAnswers: {} },
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    const refAfter = await prisma.referral.findUniqueOrThrow({ where: { id: ref.id } });
+    expect(refAfter.applicationId).toBe(r.applicationId);
+
+    const appAfter = await prisma.application.findUniqueOrThrow({ where: { id: r.applicationId } });
+    expect(appAfter.referralId).toBe(ref.id);
+  });
+});

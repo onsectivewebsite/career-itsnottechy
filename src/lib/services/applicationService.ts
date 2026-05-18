@@ -47,6 +47,26 @@ export async function submitApplication(args: {
     throw err;
   }
 
+  // Auto-link the application to a matching pending referral (if any).
+  // Update only if there's exactly one matching referral not yet linked.
+  const matchingReferral = await prisma.referral.findFirst({
+    where: {
+      jobId: args.jobId,
+      candidateEmail: candidate.email,
+      applicationId: null,
+    },
+  });
+  if (matchingReferral) {
+    await prisma.referral.update({
+      where: { id: matchingReferral.id },
+      data: { applicationId: app.id },
+    });
+    await prisma.application.update({
+      where: { id: app.id },
+      data: { referralId: matchingReferral.id },
+    });
+  }
+
   await recordAudit({
     actorUserId: args.candidateUserId,
     action: 'APPLICATION_SUBMITTED',
