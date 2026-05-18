@@ -11,6 +11,8 @@ export type TemplateData = {
   'application-received':   { name: string; jobTitle: string; dashboardUrl: string };
   'application-status-changed': { name: string; jobTitle: string; stageLabel: string; stageBlurb: string; dashboardUrl: string };
   'offer-sent':                 { name: string; jobTitle: string; dashboardUrl: string };
+  'referral-submitted':     { referrerName: string; candidateName: string; jobTitle: string; dashboardUrl: string };
+  'referral-status-update': { referrerName: string; candidateName: string; jobTitle: string; stageLabel: string; dashboardUrl: string };
 };
 
 export type TemplateName = keyof TemplateData;
@@ -24,6 +26,8 @@ const subjects: { [K in TemplateName]: (data: TemplateData[K]) => string } = {
   'application-received':   (data) => `We received your application: ${data.jobTitle}`,
   'application-status-changed': (data) => `${data.jobTitle}: ${data.stageLabel}`,
   'offer-sent':                 (data) => `An offer for ${data.jobTitle}`,
+  'referral-submitted':     (data) => `Referral received: ${data.candidateName} for ${data.jobTitle}`,
+  'referral-status-update': (data) => `${data.candidateName} update: ${data.stageLabel}`,
 };
 
 export function subjectFor<T extends TemplateName>(name: T, data: TemplateData[T]): string {
