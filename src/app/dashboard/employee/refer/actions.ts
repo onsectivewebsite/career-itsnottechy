@@ -10,7 +10,7 @@ import { referralInputSchema } from '@/lib/validation/referrals';
 type FormState = { error?: string; fieldErrors?: Record<string, string[]>; ok?: true };
 
 export async function submitReferralAction(_prev: FormState | undefined, fd: FormData): Promise<FormState> {
-  const user = requireAnyRole(await getSessionUser(), ['SUPER_ADMIN', 'HR_MANAGER', 'MANAGER', 'EMPLOYEE']);
+  const user = requireAnyRole(await getSessionUser(), ['MANAGER', 'EMPLOYEE']);
   const parsed = referralInputSchema.safeParse({
     jobId: fd.get('jobId'),
     candidateName: fd.get('candidateName'),

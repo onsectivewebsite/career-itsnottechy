@@ -21,7 +21,7 @@ export default async function MyReferralsPage({
 }: {
   searchParams: { submitted?: string };
 }) {
-  const user = requireAnyRole(await getSessionUser(), ['SUPER_ADMIN', 'HR_MANAGER', 'MANAGER', 'EMPLOYEE']);
+  const user = requireAnyRole(await getSessionUser(), ['MANAGER', 'EMPLOYEE']);
   const refs = await listMyReferrals(user.id);
 
   return (

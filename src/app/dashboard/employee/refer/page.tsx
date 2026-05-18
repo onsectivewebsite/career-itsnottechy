@@ -7,7 +7,7 @@ import { ReferForm } from './ReferForm';
 export const metadata = { title: 'Refer a candidate · ItsNotTechy Careers' };
 
 export default async function ReferPage() {
-  requireAnyRole(await getSessionUser(), ['SUPER_ADMIN', 'HR_MANAGER', 'MANAGER', 'EMPLOYEE']);
+  requireAnyRole(await getSessionUser(), ['MANAGER', 'EMPLOYEE']);
   const openJobs = (await listPublicJobs({})).map((j) => ({
     id: j.id, title: j.title, department: j.department,
   }));
