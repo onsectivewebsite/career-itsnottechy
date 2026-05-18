@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/password';
 import { recordAudit } from '@/lib/audit';
 import { sendEmail } from '@/lib/email';
+import { autoLinkOnCandidateRegistered } from '@/lib/services/referralService';
 import type { Role } from '@prisma/client';
 import { issueInviteToken, consumeInviteToken, consumePasswordResetToken, issuePasswordResetToken } from '@/lib/tokens';
 
@@ -47,6 +48,8 @@ export async function registerCandidate(input: {
       dashboardUrl: `${process.env.APP_URL ?? ''}/dashboard/candidate`,
     },
   });
+
+  await autoLinkOnCandidateRegistered({ candidateUserId: user.id });
 
   return { ok: true, userId: user.id };
 }

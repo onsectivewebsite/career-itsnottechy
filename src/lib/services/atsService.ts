@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { recordAudit } from '@/lib/audit';
 import { sendEmail } from '@/lib/email';
 import { isValidTransition, STAGE_LABEL as STAGE_NAME } from '@/lib/ats/stages';
+import { notifyReferrerOnStageChange } from '@/lib/services/referralService';
 
 // Re-export so existing imports `import { isValidTransition } from './atsService'` keep working.
 export { isValidTransition };
@@ -88,6 +89,8 @@ export async function moveStage(args: {
       },
     });
   }
+
+  await notifyReferrerOnStageChange({ applicationId: args.applicationId, newStage: args.toStage });
 
   return { ok: true };
 }

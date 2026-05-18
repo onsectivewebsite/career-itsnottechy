@@ -194,3 +194,24 @@ describe('setNewPasswordWithResetToken', () => {
     expect(await verifyPassword('NewPass123', updated!.passwordHash)).toBe(true);
   });
 });
+
+describe('registerCandidate auto-links pending referrals', () => {
+  beforeEach(async () => { await resetDb(); __resetTransportForTests(); });
+
+  it('marks a pending referral as CONTACTED when the candidate registers', async () => {
+    const hr = await prisma.user.create({ data: { email: 'hr@x.com', name: 'HR', role: 'HR_MANAGER' } });
+    const job = await prisma.job.create({
+      data: { title: 'J', department: 'D', locationType: 'REMOTE', type: 'FULL_TIME', description: 'd', requirements: 'r', postedById: hr.id, status: 'OPEN' },
+    });
+    const emp = await prisma.user.create({ data: { email: 'emp@x.com', name: 'Emp', role: 'EMPLOYEE' } });
+    await prisma.referral.create({
+      data: { referringUserId: emp.id, jobId: job.id, candidateName: 'Z', candidateEmail: 'z@example.com', relationship: 'colleague', status: 'SUBMITTED' },
+    });
+
+    const r = await registerCandidate({ email: 'z@example.com', password: 'Hunter2pass', name: 'Z' });
+    expect(r.ok).toBe(true);
+
+    const after = await prisma.referral.findFirstOrThrow({ where: { candidateEmail: 'z@example.com' } });
+    expect(after.status).toBe('CONTACTED');
+  });
+});

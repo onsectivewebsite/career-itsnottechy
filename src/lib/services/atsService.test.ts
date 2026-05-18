@@ -151,3 +151,38 @@ describe('listApplicationsForJob', () => {
     expect(list[0]?.stage).toBe('APPLIED');
   });
 });
+
+describe('moveStage notifies referrer when application has a referral', () => {
+  beforeEach(async () => {
+    process.env.EMAIL_TEST_MODE = 'true';
+    __resetTransportForTests();
+    await resetDb();
+  });
+
+  it('emails referrer in addition to candidate', async () => {
+    const hr = await prisma.user.create({ data: { email: 'hr@x.com', name: 'HR', role: 'HR_MANAGER' } });
+    const j = await createJob({ input: baseJob, postedByUserId: hr.id });
+    if (!j.ok) throw new Error();
+    await publishJob({ jobId: j.jobId, actorUserId: hr.id });
+
+    const emp = await prisma.user.create({ data: { email: 'emp@x.com', name: 'Emp', role: 'EMPLOYEE' } });
+    const ref = await prisma.referral.create({
+      data: { referringUserId: emp.id, jobId: j.jobId, candidateName: 'C', candidateEmail: 'c@x.com', relationship: 'r', status: 'SUBMITTED' },
+    });
+    const cand = await prisma.user.create({
+      data: { email: 'c@x.com', name: 'C', role: 'CANDIDATE', candidateProfile: { create: {} } },
+    });
+    const app = await prisma.application.create({
+      data: { jobId: j.jobId, candidateUserId: cand.id, resumeUrl: 'r.pdf', referralId: ref.id },
+    });
+
+    __resetTransportForTests();
+    const r = await moveStage({ applicationId: app.id, toStage: 'SCREENING', actorUserId: hr.id });
+    expect(r.ok).toBe(true);
+
+    const sends = __recordedSendsForTests();
+    expect(sends.length).toBe(2);
+    expect(sends.some((s) => s.to === cand.email)).toBe(true);
+    expect(sends.some((s) => s.to === emp.email)).toBe(true);
+  });
+});
