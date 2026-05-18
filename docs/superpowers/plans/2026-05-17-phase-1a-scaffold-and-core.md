@@ -244,7 +244,7 @@ services:
       POSTGRES_PASSWORD: careers_dev_only
       POSTGRES_DB: careers
     ports:
-      - "5432:5432"
+      - "5433:5432"   # host 5433 → container 5432 (avoid clash with other local postgres on 5432)
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -264,8 +264,8 @@ GRANT ALL PRIVILEGES ON DATABASE careers_test TO careers;
 
 ```bash
 # === Database ===
-DATABASE_URL="postgresql://careers:careers_dev_only@localhost:5432/careers?schema=public"
-TEST_DATABASE_URL="postgresql://careers:careers_dev_only@localhost:5432/careers_test?schema=public"
+DATABASE_URL="postgresql://careers:careers_dev_only@localhost:5433/careers?schema=public"
+TEST_DATABASE_URL="postgresql://careers:careers_dev_only@localhost:5433/careers_test?schema=public"
 
 # === NextAuth ===
 NEXTAUTH_URL="http://localhost:3000"
@@ -420,7 +420,7 @@ process.env.EMAIL_TEST_MODE = 'true';
 - [ ] **Step 3: Create `.env.test`**
 
 ```bash
-DATABASE_URL="postgresql://careers:careers_dev_only@localhost:5432/careers_test?schema=public"
+DATABASE_URL="postgresql://careers:careers_dev_only@localhost:5433/careers_test?schema=public"
 NEXTAUTH_SECRET="test-secret-do-not-use-in-prod"
 NEXTAUTH_URL="http://localhost:3000"
 EMAIL_TEST_MODE="true"
