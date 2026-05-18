@@ -1,0 +1,324 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ ENUMS ============
+
+enum Role {
+  SUPER_ADMIN
+  HR_MANAGER
+  MANAGER
+  EMPLOYEE
+  CANDIDATE
+}
+
+enum JobStatus {
+  DRAFT
+  OPEN
+  CLOSED
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERN
+}
+
+enum LocationType {
+  REMOTE
+  ONSITE
+  HYBRID
+}
+
+enum AppStage {
+  APPLIED
+  SCREENING
+  INTERVIEW
+  OFFER
+  HIRED
+  REJECTED
+}
+
+enum ReferralStatus {
+  SUBMITTED
+  CONTACTED
+  CONVERTED
+  REJECTED
+}
+
+enum InterviewFormat {
+  VIDEO
+  PHONE
+  IN_PERSON
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum Decision {
+  APPROVED
+  REJECTED
+}
+
+enum PromotionStatus {
+  PENDING_MANAGER
+  PENDING_HR
+  APPROVED
+  REJECTED
+}
+
+enum EmailStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
+// ============ MODELS ============
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String?
+  name         String
+  role         Role
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  employee               Employee?
+  candidateProfile       CandidateProfile?
+  applications           Application[]        @relation("CandidateApplications")
+  notesAuthored          ApplicationNote[]
+  referralsMade          Referral[]           @relation("ReferringEmployee")
+  interviewsAsInterviewer Interview[]         @relation("Interviewer")
+  promotionRequests      PromotionRequest[]   @relation("Submitter")
+  promotionsAsManager    PromotionRequest[]   @relation("ApprovingManager")
+  jobsPosted             Job[]                @relation("JobsPosted")
+  auditEntries           AuditLog[]
+  inviteTokens           InviteToken[]
+  passwordResets         PasswordResetToken[]
+
+  @@index([role, isActive])
+}
+
+model Employee {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeCode String   @unique
+  department   String
+  title        String
+  managerId    String?
+  manager      Employee?  @relation("EmployeeReports", fields: [managerId], references: [id], onDelete: SetNull)
+  reports      Employee[] @relation("EmployeeReports")
+  hireDate     DateTime
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@index([managerId])
+  @@index([department])
+}
+
+model CandidateProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone       String?
+  location    String?
+  linkedinUrl String?
+  resumeUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Job {
+  id              String       @id @default(cuid())
+  title           String
+  department      String
+  locationType    LocationType
+  locationCity    String?
+  type            JobType
+  description     String       @db.Text
+  requirements    String       @db.Text
+  salaryMin       Int?
+  salaryMax       Int?
+  currency        String       @default("USD")
+  deadline        DateTime?
+  status          JobStatus    @default(DRAFT)
+  customQuestions Json         @default("[]")
+  postedById      String
+  postedBy        User         @relation("JobsPosted", fields: [postedById], references: [id])
+  createdAt       DateTime     @default(now())
+  closedAt        DateTime?
+  updatedAt       DateTime     @updatedAt
+
+  applications Application[]
+  referrals    Referral[]
+
+  @@index([status, createdAt])
+  @@index([department])
+}
+
+model Application {
+  id              String   @id @default(cuid())
+  jobId           String
+  job             Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidateUserId String
+  candidate       User     @relation("CandidateApplications", fields: [candidateUserId], references: [id], onDelete: Cascade)
+  stage           AppStage @default(APPLIED)
+  resumeUrl       String
+  coverLetter     String?  @db.Text
+  customAnswers   Json     @default("{}")
+  referralId      String?  @unique
+  referral        Referral? @relation(fields: [referralId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  notes      ApplicationNote[]
+  interviews Interview[]
+
+  @@unique([jobId, candidateUserId])
+  @@index([stage])
+  @@index([candidateUserId])
+}
+
+model ApplicationNote {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  authorUserId  String
+  author        User        @relation(fields: [authorUserId], references: [id])
+  body          String      @db.Text
+  createdAt     DateTime    @default(now())
+
+  @@index([applicationId, createdAt])
+}
+
+model Referral {
+  id              String         @id @default(cuid())
+  referringUserId String
+  referringUser   User           @relation("ReferringEmployee", fields: [referringUserId], references: [id])
+  jobId           String
+  job             Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidateEmail  String
+  candidateName   String
+  relationship    String
+  resumeUrl       String?
+  status          ReferralStatus @default(SUBMITTED)
+  applicationId   String?        @unique
+  application     Application?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([referringUserId])
+  @@index([candidateEmail, jobId])
+}
+
+model Interview {
+  id                String          @id @default(cuid())
+  applicationId     String
+  application       Application     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  scheduledAt       DateTime
+  durationMinutes   Int             @default(45)
+  format            InterviewFormat
+  interviewerUserId String
+  interviewer       User            @relation("Interviewer", fields: [interviewerUserId], references: [id])
+  locationOrLink    String
+  status            InterviewStatus @default(SCHEDULED)
+  notes             String?         @db.Text
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([interviewerUserId, scheduledAt])
+  @@index([applicationId])
+}
+
+model PromotionRequest {
+  id               String          @id @default(cuid())
+  employeeUserId   String
+  employee         User            @relation("Submitter", fields: [employeeUserId], references: [id])
+  currentTitle     String
+  targetTitle      String
+  justification    String          @db.Text
+  supportingDocUrl String?
+  managerUserId    String
+  manager          User            @relation("ApprovingManager", fields: [managerUserId], references: [id])
+  managerDecision  Decision?
+  managerNotes     String?         @db.Text
+  managerDecidedAt DateTime?
+  hrDecision       Decision?
+  hrNotes          String?         @db.Text
+  hrDecidedAt      DateTime?
+  finalStatus      PromotionStatus @default(PENDING_MANAGER)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([managerUserId, finalStatus])
+  @@index([employeeUserId])
+}
+
+model EmailLog {
+  id        String      @id @default(cuid())
+  toEmail   String
+  subject   String
+  template  String
+  payload   Json
+  status    EmailStatus @default(QUEUED)
+  error     String?     @db.Text
+  sentAt    DateTime?
+  createdAt DateTime    @default(now())
+
+  @@index([status, createdAt])
+  @@index([toEmail])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  actor       User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  action      String
+  entityType  String
+  entityId    String
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorUserId, createdAt])
+}
+
+model InviteToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+}
