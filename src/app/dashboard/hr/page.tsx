@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { getSessionUser } from '@/lib/auth/session';
 import { requireAnyRole } from '@/lib/rbac';
 import { Card, CardTitle } from '@/components/ui/Card';
@@ -13,7 +14,14 @@ export default async function HRDashboard() {
         <Card><CardTitle>Applicants</CardTitle><p className="mt-2 text-sm text-slate-600">Phase 3.</p></Card>
         <Card><CardTitle>Referrals</CardTitle><p className="mt-2 text-sm text-slate-600">Phase 4.</p></Card>
         <MyInterviewsWidget userId={user.id} canSeeHrApplication />
-        <Card><CardTitle>Promotions</CardTitle><p className="mt-2 text-sm text-slate-600">Phase 6.</p></Card>
+        <Card>
+          <CardTitle>Promotions</CardTitle>
+          <p className="mt-2 text-sm text-slate-600">
+            <Link href="/dashboard/hr/promotions" className="text-brand-600 hover:underline">
+              Final-decision queue
+            </Link>
+          </p>
+        </Card>
         <Card><CardTitle>Invite staff</CardTitle><p className="mt-2 text-sm text-slate-600">UI in Phase 7.</p></Card>
       </div>
     </div>
