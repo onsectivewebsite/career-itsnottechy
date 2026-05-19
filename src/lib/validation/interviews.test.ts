@@ -48,4 +48,14 @@ describe('interviewInputSchema', () => {
     });
     expect(r.notes).toBe('please be ready');
   });
+
+  it('coerces ISO UTC string with Z suffix to a Date at the expected UTC instant', () => {
+    const r = interviewInputSchema.parse({
+      applicationId: 'a',
+      scheduledAt: '2099-06-01T14:00:00.000Z',
+      durationMinutes: 45, format: 'VIDEO', interviewerUserId: 'u',
+      locationOrLink: 'https://x',
+    });
+    expect(r.scheduledAt.toISOString()).toBe('2099-06-01T14:00:00.000Z');
+  });
 });
