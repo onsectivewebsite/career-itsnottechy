@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { getSessionUser } from '@/lib/auth/session';
 import { requireRole } from '@/lib/rbac';
 import { Card, CardTitle } from '@/components/ui/Card';
@@ -15,6 +16,14 @@ export default async function AdminDashboard() {
         <Card>
           <CardTitle>Audit log</CardTitle>
           <p className="mt-2 text-sm text-slate-600">Full viewer in Phase 7. Entries are being recorded now.</p>
+        </Card>
+        <Card>
+          <CardTitle>Invite staff</CardTitle>
+          <p className="mt-2 text-sm text-slate-600">
+            <Link href="/dashboard/hr/invite" className="text-brand-600 hover:underline">
+              Send a new invitation
+            </Link>
+          </p>
         </Card>
       </div>
     </div>

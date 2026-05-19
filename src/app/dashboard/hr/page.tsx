@@ -22,7 +22,14 @@ export default async function HRDashboard() {
             </Link>
           </p>
         </Card>
-        <Card><CardTitle>Invite staff</CardTitle><p className="mt-2 text-sm text-slate-600">UI in Phase 7.</p></Card>
+        <Card>
+          <CardTitle>Invite staff</CardTitle>
+          <p className="mt-2 text-sm text-slate-600">
+            <Link href="/dashboard/hr/invite" className="text-brand-600 hover:underline">
+              Send a new invitation
+            </Link>
+          </p>
+        </Card>
       </div>
     </div>
   );
