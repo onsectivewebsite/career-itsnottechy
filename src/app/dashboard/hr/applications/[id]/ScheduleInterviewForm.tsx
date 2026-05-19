@@ -1,7 +1,7 @@
 'use client';
 
-import { useFormState } from 'react-dom';
 import { useState } from 'react';
+import { useFormState } from 'react-dom';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Button } from '@/components/ui/Button';
@@ -18,7 +18,7 @@ export function ScheduleInterviewForm({
   staffUsers: Staff[];
 }) {
   const [state, formAction] = useFormState(scheduleInterviewAction, {} as ScheduleFormState);
-  const [force, setForce] = useState(false);
+  const [scheduledAtIso, setScheduledAtIso] = useState('');
 
   const ok = 'ok' in state && state.ok === true;
   const error = 'error' in state ? state.error : undefined;
@@ -27,7 +27,6 @@ export function ScheduleInterviewForm({
   return (
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="applicationId" value={applicationId} />
-      {force && <input type="hidden" name="force" value="1" />}
 
       {ok && <Alert tone="success">Interview scheduled. Emails are out.</Alert>}
       {error && <Alert tone="error">{error}</Alert>}
@@ -47,7 +46,17 @@ export function ScheduleInterviewForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <Label htmlFor="scheduledAt">When (your local time)</Label>
-          <Input id="scheduledAt" name="scheduledAt" type="datetime-local" required className="mt-1" />
+          <Input
+            id="scheduledAt"
+            type="datetime-local"
+            required
+            className="mt-1"
+            onChange={(e) => {
+              const v = e.target.value;
+              setScheduledAtIso(v ? new Date(v).toISOString() : '');
+            }}
+          />
+          <input type="hidden" name="scheduledAt" value={scheduledAtIso} />
         </div>
         <div>
           <Label htmlFor="durationMinutes">Duration (minutes)</Label>
@@ -85,11 +94,11 @@ export function ScheduleInterviewForm({
       </div>
 
       <div className="flex items-center gap-3">
-        <Button type="submit" onClick={() => setForce(false)}>
+        <Button type="submit" name="force" value="0">
           {conflicts && conflicts.length > 0 ? 'Re-check' : 'Schedule interview'}
         </Button>
         {conflicts && conflicts.length > 0 && (
-          <Button type="submit" onClick={() => setForce(true)} variant="secondary">
+          <Button type="submit" name="force" value="1" variant="secondary">
             Schedule anyway
           </Button>
         )}
