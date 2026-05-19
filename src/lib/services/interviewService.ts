@@ -43,42 +43,64 @@ export async function scheduleInterview(args: {
   const startA = parsed.data.scheduledAt;
   const endA = new Date(startA.getTime() + parsed.data.durationMinutes * 60_000);
 
-  if (!args.force) {
-    // Pre-filter by index, refine overlap in JS (Prisma can't do start+duration arithmetic).
-    // Safety window: 4h back (max interview = 240 min = 4h), so any interview that started
-    // up to 4h before startA could still be running at startA.
-    const candidates = await prisma.interview.findMany({
-      where: {
-        interviewerUserId: parsed.data.interviewerUserId,
-        status: { not: 'CANCELLED' },
-        scheduledAt: {
-          gte: new Date(startA.getTime() - 4 * 60 * 60_000),
-          lt: endA,
+  // Run conflict check + create in one serializable transaction so two parallel
+  // schedules for the same interviewer cannot both pass the overlap check.
+  // The transaction body returns either the created Interview or a CONFLICT.
+  type TxOut =
+    | { kind: 'created'; row: { id: string } }
+    | { kind: 'conflict'; conflicts: Array<{ id: string; scheduledAt: Date; durationMinutes: number; applicationId: string }> };
+
+  let txResult: TxOut;
+  try {
+    txResult = await prisma.$transaction(async (tx) => {
+      if (!args.force) {
+        const candidates = await tx.interview.findMany({
+          where: {
+            interviewerUserId: parsed.data.interviewerUserId,
+            status: { not: 'CANCELLED' },
+            scheduledAt: {
+              gte: new Date(startA.getTime() - 4 * 60 * 60_000),
+              lt: endA,
+            },
+          },
+          select: { id: true, scheduledAt: true, durationMinutes: true, applicationId: true },
+        });
+        const conflicts = candidates.filter((c) => {
+          const startB = c.scheduledAt;
+          const endB = new Date(startB.getTime() + c.durationMinutes * 60_000);
+          return startA < endB && startB < endA;
+        });
+        if (conflicts.length > 0) {
+          return { kind: 'conflict' as const, conflicts };
+        }
+      }
+      const row = await tx.interview.create({
+        data: {
+          applicationId: parsed.data.applicationId,
+          scheduledAt: parsed.data.scheduledAt,
+          durationMinutes: parsed.data.durationMinutes,
+          format: parsed.data.format,
+          interviewerUserId: parsed.data.interviewerUserId,
+          locationOrLink: parsed.data.locationOrLink,
+          notes: parsed.data.notes ?? null,
         },
-      },
-      select: { id: true, scheduledAt: true, durationMinutes: true, applicationId: true },
-    });
-    const conflicts = candidates.filter((c) => {
-      const startB = c.scheduledAt;
-      const endB = new Date(startB.getTime() + c.durationMinutes * 60_000);
-      return startA < endB && startB < endA;
-    });
-    if (conflicts.length > 0) {
-      return { ok: false, reason: 'CONFLICT', conflicts };
+        select: { id: true },
+      });
+      return { kind: 'created' as const, row };
+    }, { isolationLevel: 'Serializable' });
+  } catch (err) {
+    // Serializable conflict — surface as CONFLICT with an empty list. UI will
+    // re-render the form; the user can re-submit to see the now-visible conflict.
+    if (err instanceof Error && /serializ/i.test(err.message)) {
+      return { ok: false, reason: 'CONFLICT', conflicts: [] };
     }
+    throw err;
   }
 
-  const created = await prisma.interview.create({
-    data: {
-      applicationId: parsed.data.applicationId,
-      scheduledAt: parsed.data.scheduledAt,
-      durationMinutes: parsed.data.durationMinutes,
-      format: parsed.data.format,
-      interviewerUserId: parsed.data.interviewerUserId,
-      locationOrLink: parsed.data.locationOrLink,
-      notes: parsed.data.notes ?? null,
-    },
-  });
+  if (txResult.kind === 'conflict') {
+    return { ok: false, reason: 'CONFLICT', conflicts: txResult.conflicts };
+  }
+  const created = txResult.row;
 
   await recordAudit({
     actorUserId: args.scheduledByUserId,

@@ -169,6 +169,39 @@ describe('scheduleInterview', () => {
     });
     expect(r).toMatchObject({ ok: false, reason: 'NOT_FOUND' });
   });
+
+  it('two concurrent schedules for the same interviewer: exactly one wins', async () => {
+    const { hr, applicationId, interviewer } = await setupApp();
+    const at = futureIso(10);
+
+    const [a, b] = await Promise.all([
+      scheduleInterview({
+        scheduledByUserId: hr.id,
+        input: {
+          applicationId, scheduledAt: at, durationMinutes: 60,
+          format: 'VIDEO', interviewerUserId: interviewer.id,
+          locationOrLink: 'https://meet.example.com/a',
+        },
+      }),
+      scheduleInterview({
+        scheduledByUserId: hr.id,
+        input: {
+          applicationId, scheduledAt: at, durationMinutes: 30,
+          format: 'PHONE', interviewerUserId: interviewer.id, locationOrLink: '+1-555',
+        },
+      }),
+    ]);
+
+    const wins   = [a, b].filter((r) => r.ok);
+    const losses = [a, b].filter((r) => !r.ok);
+    expect(wins).toHaveLength(1);
+    expect(losses).toHaveLength(1);
+    if (losses[0]!.ok) return;
+    expect(losses[0]!.reason).toBe('CONFLICT');
+
+    const all = await prisma.interview.findMany({ where: { interviewerUserId: interviewer.id } });
+    expect(all).toHaveLength(1);
+  });
 });
 
 describe('listInterviewsForUser', () => {
