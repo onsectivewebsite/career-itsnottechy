@@ -9,6 +9,9 @@ import { Badge } from '@/components/ui/Badge';
 import { StageActions } from './StageActions';
 import { NoteForm } from './NoteForm';
 import type { CustomQuestion } from '@/types/customQuestions';
+import { prisma } from '@/lib/prisma';
+import { ScheduleInterviewForm } from './ScheduleInterviewForm';
+import { listInterviewsForApplication } from '@/lib/services/interviewService';
 
 export default async function ApplicationDetailPage({ params }: { params: { id: string } }) {
   requireAnyRole(await getSessionUser(), ['SUPER_ADMIN', 'HR_MANAGER']);
@@ -17,6 +20,13 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
 
   const questions = (app.job.customQuestions as unknown as CustomQuestion[]) ?? [];
   const answers = (app.customAnswers as Record<string, string>) ?? {};
+
+  const staffUsers = await prisma.user.findMany({
+    where: { role: { in: ['SUPER_ADMIN', 'HR_MANAGER', 'MANAGER', 'EMPLOYEE'] }, isActive: true },
+    select: { id: true, name: true, email: true },
+    orderBy: { name: 'asc' },
+  });
+  const interviews = await listInterviewsForApplication(params.id);
 
   return (
     <div className="space-y-6">
@@ -77,6 +87,36 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
             </dl>
           </>
         )}
+      </Card>
+
+      <Card>
+        <CardTitle>Interviews ({interviews.length})</CardTitle>
+        {interviews.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-500">No interviews scheduled yet.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {interviews.map((iv) => (
+              <li key={iv.id} className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                <div className="font-medium text-slate-800">
+                  {iv.scheduledAt.toUTCString()}
+                  {' '}· {iv.durationMinutes} min · {iv.format.replace('_', ' ').toLowerCase()}
+                  {iv.status !== 'SCHEDULED' && (
+                    <span className="ml-2 text-xs text-slate-500">({iv.status.toLowerCase()})</span>
+                  )}
+                </div>
+                <div className="text-xs text-slate-500">
+                  Interviewer: {iv.interviewer.name} · {iv.locationOrLink}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="mt-5 border-t border-slate-200 pt-4">
+          <h3 className="text-sm font-semibold text-slate-700">Schedule a new interview</h3>
+          <div className="mt-3">
+            <ScheduleInterviewForm applicationId={params.id} staffUsers={staffUsers} />
+          </div>
+        </div>
       </Card>
 
       <Card>
