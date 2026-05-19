@@ -15,7 +15,7 @@ export default async function ManagerDashboard() {
             Promotion requests from your direct reports will appear here. Lands in Phase 6.
           </p>
         </Card>
-        <MyInterviewsWidget userId={user.id} canSeeHrApplication />
+        <MyInterviewsWidget userId={user.id} />
       </div>
     </div>
   );
