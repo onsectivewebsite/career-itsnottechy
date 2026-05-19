@@ -45,6 +45,11 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(new URL('/403', req.url));
   }
 
+  if (!match) {
+    // Unknown /dashboard/* subpath — default deny by redirecting to the user's own dashboard.
+    return NextResponse.redirect(new URL(dashboardFor(token.role), req.url));
+  }
+
   return NextResponse.next();
 }
 
