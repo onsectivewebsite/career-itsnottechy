@@ -17,7 +17,9 @@ export default async function AdminDashboard() {
         </Card>
         <Card>
           <CardTitle>Audit log</CardTitle>
-          <p className="mt-2 text-sm text-slate-600">Full viewer in Phase 7. Entries are being recorded now.</p>
+          <p className="mt-2 text-sm text-slate-600">
+            <Link href="/dashboard/admin/audit" className="text-brand-600 hover:underline">View</Link>
+          </p>
         </Card>
         <Card>
           <CardTitle>Invite staff</CardTitle>
