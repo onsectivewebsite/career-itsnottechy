@@ -4,16 +4,27 @@ import { requireRole } from '@/lib/rbac';
 import { listUsers } from '@/lib/services/adminUserService';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Alert } from '@/components/ui/Alert';
 import { UserRowActions } from './UserRowActions';
 
 export const metadata = { title: 'Users · ItsNotTechy Careers' };
+
+const ERR_LABEL: Record<string, string> = {
+  last_admin:  'You cannot demote or deactivate the only active super admin.',
+  self:        'You cannot deactivate your own account.',
+  not_found:   'That user no longer exists.',
+  invalid:     'Invalid role.',
+  no_employee_record: 'That user has no employee record yet — invite them via the staff form first.',
+};
 
 const ROLE_TONE = {
   SUPER_ADMIN: 'red', HR_MANAGER: 'blue', MANAGER: 'amber',
   EMPLOYEE: 'neutral', CANDIDATE: 'green',
 } as const;
 
-export default async function UsersPage() {
+export default async function UsersPage({
+  searchParams,
+}: { searchParams: { err?: string } }) {
   requireRole(await getSessionUser(), 'SUPER_ADMIN');
   const users = await listUsers();
 
@@ -21,6 +32,11 @@ export default async function UsersPage() {
     <div className="space-y-6">
       <Link href="/dashboard/admin" className="text-sm text-brand-600 hover:underline">&larr; Dashboard</Link>
       <h1 className="text-2xl font-bold text-slate-900">Users</h1>
+      {searchParams.err && (
+        <Alert tone="error">
+          {ERR_LABEL[searchParams.err] ?? 'Action failed.'}
+        </Alert>
+      )}
       <p className="text-sm text-slate-500">{users.length} total.</p>
 
       <Card>
