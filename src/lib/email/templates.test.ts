@@ -52,3 +52,43 @@ describe('subjectFor', () => {
       .toBe('Reset your ItsNotTechy Careers password');
   });
 });
+
+describe('renderTemplate interview-scheduled', () => {
+  const baseData = {
+    recipientName: 'Carol',
+    candidateName: 'Jordan Reed',
+    jobTitle: 'Software Engineer',
+    whenHuman: 'Mon, 01 Jun 2026 14:00:00 UTC',
+    durationMinutes: '45',
+    formatLabel: 'Video',
+    locationLabel: 'Meeting link',
+    locationOrLink: 'https://meet.example.com/abc',
+    notesBlock: '',
+  };
+
+  it('renders without notes', () => {
+    const html = renderTemplate('interview-scheduled', baseData);
+    expect(html).toContain('Carol');
+    expect(html).toContain('Jordan Reed');
+    expect(html).toContain('Software Engineer');
+    expect(html).toContain('Meeting link');
+    expect(html).toContain('https://meet.example.com/abc');
+    // No notes paragraph
+    expect(html).not.toContain('Notes:');
+  });
+
+  it('renders the notesBlock as raw HTML (not escaped)', () => {
+    const html = renderTemplate('interview-scheduled', {
+      ...baseData,
+      notesBlock: '<p><strong>Notes:</strong> please be ready</p>',
+    });
+    // Raw HTML: opening tag preserved, no &lt; entities
+    expect(html).toContain('<p><strong>Notes:</strong> please be ready</p>');
+    expect(html).not.toContain('&lt;p&gt;');
+  });
+
+  it('subject includes candidate and job title', () => {
+    expect(subjectFor('interview-scheduled', baseData))
+      .toBe('Interview scheduled — Jordan Reed for Software Engineer');
+  });
+});
