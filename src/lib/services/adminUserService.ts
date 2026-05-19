@@ -12,18 +12,31 @@ export async function listUsers() {
   });
 }
 
-export type SetRoleResult = { ok: true } | { ok: false; reason: 'NOT_FOUND' | 'LAST_ADMIN' };
+export type SetRoleResult =
+  | { ok: true }
+  | { ok: false; reason: 'NOT_FOUND' | 'LAST_ADMIN' | 'NO_EMPLOYEE_RECORD' };
 
 export async function setUserRole(args: {
   userId: string; newRole: Role; actorUserId: string;
 }): Promise<SetRoleResult> {
-  const user = await prisma.user.findUnique({ where: { id: args.userId }, select: { id: true, role: true } });
+  const user = await prisma.user.findUnique({
+    where: { id: args.userId },
+    select: { id: true, role: true, employee: { select: { id: true } } },
+  });
   if (!user) return { ok: false, reason: 'NOT_FOUND' };
 
   // Refuse to demote the last remaining active SUPER_ADMIN.
   if (user.role === 'SUPER_ADMIN' && args.newRole !== 'SUPER_ADMIN') {
     const admins = await prisma.user.count({ where: { role: 'SUPER_ADMIN', isActive: true } });
     if (admins <= 1) return { ok: false, reason: 'LAST_ADMIN' };
+  }
+
+  // Refuse to promote a user without an Employee row to a role that needs one.
+  // Spec note: Employee row required for HR_MANAGER / MANAGER / EMPLOYEE.
+  // SUPER_ADMIN and CANDIDATE legitimately have no Employee row.
+  const STAFF_ROLES: Role[] = ['HR_MANAGER', 'MANAGER', 'EMPLOYEE'];
+  if (STAFF_ROLES.includes(args.newRole) && !user.employee) {
+    return { ok: false, reason: 'NO_EMPLOYEE_RECORD' };
   }
 
   await prisma.user.update({ where: { id: args.userId }, data: { role: args.newRole } });

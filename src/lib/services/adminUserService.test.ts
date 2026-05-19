@@ -21,6 +21,7 @@ describe('setUserRole', () => {
   it('changes role + writes audit', async () => {
     const admin = await prisma.user.create({ data: { email: 'a@x.com', name: 'A', role: 'SUPER_ADMIN' } });
     const u = await prisma.user.create({ data: { email: 'e@x.com', name: 'E', role: 'EMPLOYEE' } });
+    await prisma.employee.create({ data: { userId: u.id, employeeCode: 'E1', department: 'X', title: 'T', hireDate: new Date() } });
     const r = await setUserRole({ userId: u.id, newRole: 'MANAGER', actorUserId: admin.id });
     expect(r.ok).toBe(true);
     expect((await prisma.user.findUniqueOrThrow({ where: { id: u.id } })).role).toBe('MANAGER');
@@ -36,7 +37,30 @@ describe('setUserRole', () => {
   it('allows demoting a SUPER_ADMIN when another exists', async () => {
     const a1 = await prisma.user.create({ data: { email: 'a1@x.com', name: 'A1', role: 'SUPER_ADMIN' } });
     const a2 = await prisma.user.create({ data: { email: 'a2@x.com', name: 'A2', role: 'SUPER_ADMIN' } });
+    await prisma.employee.create({ data: { userId: a2.id, employeeCode: 'E2', department: 'X', title: 'T', hireDate: new Date() } });
     const r = await setUserRole({ userId: a2.id, newRole: 'EMPLOYEE', actorUserId: a1.id });
+    expect(r.ok).toBe(true);
+  });
+
+  it('refuses to promote a CANDIDATE to staff role when no Employee row exists', async () => {
+    const admin = await prisma.user.create({ data: { email: 'a@x.com', name: 'A', role: 'SUPER_ADMIN' } });
+    const c = await prisma.user.create({
+      data: { email: 'c@x.com', name: 'C', role: 'CANDIDATE', candidateProfile: { create: {} } },
+    });
+    const r = await setUserRole({ userId: c.id, newRole: 'EMPLOYEE', actorUserId: admin.id });
+    expect(r).toEqual({ ok: false, reason: 'NO_EMPLOYEE_RECORD' });
+
+    // Sanity: role unchanged
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: c.id } })).role).toBe('CANDIDATE');
+  });
+
+  it('allows promoting an EMPLOYEE up to HR_MANAGER (employee row exists)', async () => {
+    const admin = await prisma.user.create({ data: { email: 'a@x.com', name: 'A', role: 'SUPER_ADMIN' } });
+    const e = await prisma.user.create({ data: { email: 'e@x.com', name: 'E', role: 'EMPLOYEE' } });
+    await prisma.employee.create({
+      data: { userId: e.id, employeeCode: 'E01', department: 'X', title: 'T', hireDate: new Date() },
+    });
+    const r = await setUserRole({ userId: e.id, newRole: 'HR_MANAGER', actorUserId: admin.id });
     expect(r.ok).toBe(true);
   });
 });
