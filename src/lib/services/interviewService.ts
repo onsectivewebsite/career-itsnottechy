@@ -205,7 +205,9 @@ export async function listInterviewsForApplication(applicationId: string) {
   });
 }
 
-export type CancelResult = { ok: true } | { ok: false; reason: 'NOT_FOUND' };
+export type CancelResult =
+  | { ok: true }
+  | { ok: false; reason: 'NOT_FOUND' | 'ALREADY_RESOLVED' };
 
 export async function cancelInterview(args: {
   interviewId: string;
@@ -218,7 +220,7 @@ export async function cancelInterview(args: {
   if (claim.count === 0) {
     const existing = await prisma.interview.findUnique({ where: { id: args.interviewId } });
     if (!existing) return { ok: false, reason: 'NOT_FOUND' };
-    return { ok: true };
+    return { ok: false, reason: 'ALREADY_RESOLVED' };
   }
   await recordAudit({
     actorUserId: args.actorUserId,

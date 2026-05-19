@@ -286,4 +286,22 @@ describe('cancelInterview', () => {
     const r = await cancelInterview({ interviewId: 'nope', actorUserId: 'x' });
     expect(r).toEqual({ ok: false, reason: 'NOT_FOUND' });
   });
+
+  it('returns ALREADY_RESOLVED when the interview exists but is not SCHEDULED', async () => {
+    const { hr, applicationId, interviewer } = await setupApp();
+    const r = await scheduleInterview({
+      scheduledByUserId: hr.id, input: {
+        applicationId, scheduledAt: futureIso(7), durationMinutes: 45,
+        format: 'VIDEO', interviewerUserId: interviewer.id, locationOrLink: 'link',
+      },
+    });
+    if (!r.ok) throw new Error();
+
+    const first = await cancelInterview({ interviewId: r.interviewId, actorUserId: hr.id });
+    expect(first).toEqual({ ok: true });
+
+    // Second cancel call on the same id
+    const second = await cancelInterview({ interviewId: r.interviewId, actorUserId: hr.id });
+    expect(second).toEqual({ ok: false, reason: 'ALREADY_RESOLVED' });
+  });
 });
