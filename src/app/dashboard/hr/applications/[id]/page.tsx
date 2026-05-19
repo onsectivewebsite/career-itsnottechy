@@ -12,6 +12,7 @@ import type { CustomQuestion } from '@/types/customQuestions';
 import { prisma } from '@/lib/prisma';
 import { ScheduleInterviewForm } from './ScheduleInterviewForm';
 import { listInterviewsForApplication } from '@/lib/services/interviewService';
+import { cancelInterviewAction } from './cancelInterviewAction';
 
 export default async function ApplicationDetailPage({ params }: { params: { id: string } }) {
   requireAnyRole(await getSessionUser(), ['SUPER_ADMIN', 'HR_MANAGER']);
@@ -96,17 +97,26 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
         ) : (
           <ul className="mt-3 space-y-2">
             {interviews.map((iv) => (
-              <li key={iv.id} className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
-                <div className="font-medium text-slate-800">
-                  {iv.scheduledAt.toUTCString()}
-                  {' '}· {iv.durationMinutes} min · {iv.format.replace('_', ' ').toLowerCase()}
-                  {iv.status !== 'SCHEDULED' && (
-                    <span className="ml-2 text-xs text-slate-500">({iv.status.toLowerCase()})</span>
-                  )}
+              <li key={iv.id} className="flex items-start justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                <div>
+                  <div className="font-medium text-slate-800">
+                    {iv.scheduledAt.toUTCString()}
+                    {' '}· {iv.durationMinutes} min · {iv.format.replace('_', ' ').toLowerCase()}
+                    {iv.status !== 'SCHEDULED' && (
+                      <span className="ml-2 text-xs text-slate-500">({iv.status.toLowerCase()})</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    Interviewer: {iv.interviewer.name} · {iv.locationOrLink}
+                  </div>
                 </div>
-                <div className="text-xs text-slate-500">
-                  Interviewer: {iv.interviewer.name} · {iv.locationOrLink}
-                </div>
+                {iv.status === 'SCHEDULED' && (
+                  <form action={cancelInterviewAction}>
+                    <input type="hidden" name="interviewId" value={iv.id} />
+                    <input type="hidden" name="applicationId" value={params.id} />
+                    <button type="submit" className="text-xs text-red-600 hover:underline">Cancel</button>
+                  </form>
+                )}
               </li>
             ))}
           </ul>
