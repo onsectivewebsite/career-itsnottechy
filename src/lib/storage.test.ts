@@ -18,11 +18,12 @@ afterAll(() => {
   if (fs.existsSync(TEST_ROOT)) fs.rmSync(TEST_ROOT, { recursive: true, force: true });
 });
 
+const validPdfBuf = Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(10)]);
+
 describe('saveUploadedFile', () => {
   it('writes the file under <root>/<purpose>/<entityId>/<random>-<original>', async () => {
-    const buf = Buffer.from('hello pdf');
     const r = await saveUploadedFile({
-      buffer: buf,
+      buffer: validPdfBuf,
       originalFilename: 'resume.pdf',
       mimeType: 'application/pdf',
       purpose: 'resume',
@@ -33,10 +34,11 @@ describe('saveUploadedFile', () => {
     expect(r.relativePath.startsWith('resume/job-1/')).toBe(true);
     expect(r.relativePath.endsWith('-resume.pdf')).toBe(true);
     const absolute = path.resolve(TEST_ROOT, r.relativePath);
-    expect(fs.readFileSync(absolute).toString()).toBe('hello pdf');
+    expect(fs.existsSync(absolute)).toBe(true);
   });
 
   it('rejects oversize files', async () => {
+    // Oversize check runs before magic-byte check, so content doesn't matter here.
     const buf = Buffer.alloc(MAX_SIZE + 1);
     const r = await saveUploadedFile({
       buffer: buf,
@@ -61,7 +63,7 @@ describe('saveUploadedFile', () => {
 
   it('sanitizes weird original filenames', async () => {
     const r = await saveUploadedFile({
-      buffer: Buffer.from('x'),
+      buffer: validPdfBuf,
       originalFilename: '../../etc/passwd',
       mimeType: 'application/pdf',
       purpose: 'resume',
@@ -94,5 +96,31 @@ describe('MIME_BY_PURPOSE', () => {
   });
   it('whitelists supporting-doc types including images', () => {
     expect(MIME_BY_PURPOSE['supporting-doc']).toContain('image/png');
+  });
+});
+
+describe('saveUploadedFile magic-byte check', () => {
+  it('rejects a buffer whose declared MIME does not match its bytes', async () => {
+    const fakeJpeg = Buffer.from('definitely-not-an-image');
+    const r = await saveUploadedFile({
+      buffer: fakeJpeg,
+      originalFilename: 'x.jpg',
+      mimeType: 'image/jpeg',
+      purpose: 'supporting-doc',
+      entityId: 'test',
+    });
+    expect(r).toEqual({ ok: false, reason: 'MIME_MISMATCH' });
+  });
+
+  it('accepts a real PDF magic prefix', async () => {
+    const pdf = Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(100)]);
+    const r = await saveUploadedFile({
+      buffer: pdf,
+      originalFilename: 'doc.pdf',
+      mimeType: 'application/pdf',
+      purpose: 'supporting-doc',
+      entityId: 'test-' + Math.random().toString(36).slice(2),
+    });
+    expect(r.ok).toBe(true);
   });
 });

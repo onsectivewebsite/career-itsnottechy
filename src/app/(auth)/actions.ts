@@ -12,6 +12,8 @@ import {
   requestResetSchema,
   resetPasswordSchema,
 } from '@/lib/validation/auth';
+import { checkRateLimit } from '@/lib/security/rateLimit';
+import { ipFromServerActionHeaders } from '@/lib/security/clientIp';
 
 type FormState = { error?: string; fieldErrors?: Record<string, string[]>; ok?: true };
 
@@ -61,6 +63,12 @@ export async function requestResetAction(
   _prev: FormState | undefined,
   formData: FormData,
 ): Promise<FormState> {
+  const ip = await ipFromServerActionHeaders();
+  const rl = checkRateLimit({ key: `reset:${ip}`, capacity: 3, refillPerSec: 1 / 300 });
+  if (!rl.allowed) {
+    // Still return `ok: true` to avoid leaking that we throttled — same logic as the silent-success guard for unknown emails.
+    return { ok: true };
+  }
   const parsed = requestResetSchema.safeParse({ email: formData.get('email') });
   if (!parsed.success) {
     return { fieldErrors: parsed.error.flatten().fieldErrors };

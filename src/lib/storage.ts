@@ -28,9 +28,21 @@ function sanitizeFilename(original: string): string {
   return base.replace(/^\.+/, '') || 'file';
 }
 
+function looksLike(buffer: Buffer, mimeType: string): boolean {
+  if (buffer.length < 4) return false;
+  if (mimeType === 'application/pdf')
+    return buffer.slice(0, 4).toString('ascii') === '%PDF';
+  if (mimeType === 'image/png')
+    return buffer.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  if (mimeType === 'image/jpeg')
+    return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  // DOC / DOCX have varying compound headers; allowlist + declared MIME is sufficient.
+  return true;
+}
+
 export type SaveResult =
   | { ok: true; relativePath: string }
-  | { ok: false; reason: 'TOO_LARGE' | 'MIME_NOT_ALLOWED' };
+  | { ok: false; reason: 'TOO_LARGE' | 'MIME_NOT_ALLOWED' | 'MIME_MISMATCH' };
 
 export async function saveUploadedFile(input: {
   buffer: Buffer;
@@ -42,6 +54,9 @@ export async function saveUploadedFile(input: {
   if (input.buffer.byteLength > MAX_SIZE) return { ok: false, reason: 'TOO_LARGE' };
   if (!MIME_BY_PURPOSE[input.purpose].includes(input.mimeType)) {
     return { ok: false, reason: 'MIME_NOT_ALLOWED' };
+  }
+  if (!looksLike(input.buffer, input.mimeType)) {
+    return { ok: false, reason: 'MIME_MISMATCH' };
   }
 
   const safeEntity = input.entityId.replace(/[^A-Za-z0-9_-]/g, '');
