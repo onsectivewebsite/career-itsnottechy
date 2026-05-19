@@ -92,3 +92,58 @@ describe('renderTemplate interview-scheduled', () => {
       .toBe('Interview scheduled — Jordan Reed for Software Engineer');
   });
 });
+
+describe('renderTemplate promotion-submitted', () => {
+  it('renders submitter + employee + title transition', () => {
+    const html = renderTemplate('promotion-submitted', {
+      recipientName: 'Manager Mike',
+      employeeName: 'Alice',
+      currentTitle: 'Engineer II',
+      targetTitle: 'Senior Engineer',
+      contextLine: 'Please review this request and decide.',
+      dashboardUrl: 'https://x.com/dashboard/manager/promotions',
+    });
+    expect(html).toContain('Manager Mike');
+    expect(html).toContain('Alice');
+    expect(html).toContain('Engineer II');
+    expect(html).toContain('Senior Engineer');
+    expect(html).toContain('Please review this request and decide.');
+  });
+
+  it('subject contains employee name and title transition', () => {
+    expect(subjectFor('promotion-submitted', {
+      recipientName: 'r', employeeName: 'Alice',
+      currentTitle: 'Engineer II', targetTitle: 'Senior Engineer',
+      contextLine: 'x', dashboardUrl: 'x',
+    })).toBe('Promotion request — Alice: Engineer II → Senior Engineer');
+  });
+});
+
+describe('renderTemplate promotion-manager-decision', () => {
+  it('renders notesBlock as RAW HTML (triple-brace)', () => {
+    const html = renderTemplate('promotion-manager-decision', {
+      recipientName: 'Alice', employeeName: 'Alice',
+      currentTitle: 'A', targetTitle: 'B',
+      decisionLabel: 'Approved',
+      notesBlock: '<p><strong>Notes:</strong> great work</p>',
+      nextStepLine: 'Forwarded to HR for final decision.',
+      dashboardUrl: 'https://x.com/dashboard/employee/promotions',
+    });
+    expect(html).toContain('<p><strong>Notes:</strong> great work</p>');
+    expect(html).not.toContain('&lt;p&gt;');
+  });
+});
+
+describe('renderTemplate promotion-final-decision', () => {
+  it('renders final decision label without notes block when empty', () => {
+    const html = renderTemplate('promotion-final-decision', {
+      recipientName: 'Alice', employeeName: 'Alice',
+      currentTitle: 'A', targetTitle: 'B',
+      decisionLabel: 'Rejected',
+      notesBlock: '',
+      dashboardUrl: 'https://x.com/d',
+    });
+    expect(html).toContain('Rejected');
+    expect(html).not.toContain('Notes:');
+  });
+});

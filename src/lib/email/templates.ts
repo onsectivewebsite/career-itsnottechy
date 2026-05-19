@@ -24,6 +24,33 @@ export type TemplateData = {
     locationOrLink: string;
     notesBlock: string;
   };
+  'promotion-submitted': {
+    recipientName: string;
+    employeeName: string;
+    currentTitle: string;
+    targetTitle: string;
+    contextLine: string;
+    dashboardUrl: string;
+  };
+  'promotion-manager-decision': {
+    recipientName: string;
+    employeeName: string;
+    currentTitle: string;
+    targetTitle: string;
+    decisionLabel: string;
+    notesBlock: string;
+    nextStepLine: string;
+    dashboardUrl: string;
+  };
+  'promotion-final-decision': {
+    recipientName: string;
+    employeeName: string;
+    currentTitle: string;
+    targetTitle: string;
+    decisionLabel: string;
+    notesBlock: string;
+    dashboardUrl: string;
+  };
 };
 
 export type TemplateName = keyof TemplateData;
@@ -41,6 +68,9 @@ const subjects: { [K in TemplateName]: (data: TemplateData[K]) => string } = {
   'referral-status-update': (data) => `${data.candidateName} update: ${data.stageLabel}`,
   'interview-scheduled':    (data) =>
     `Interview scheduled — ${data.candidateName} for ${data.jobTitle}`,
+  'promotion-submitted':        (d) => `Promotion request — ${d.employeeName}: ${d.currentTitle} → ${d.targetTitle}`,
+  'promotion-manager-decision': (d) => `Promotion ${d.decisionLabel.toLowerCase()} by manager — ${d.employeeName}`,
+  'promotion-final-decision':   (d) => `Promotion ${d.decisionLabel.toLowerCase()} (final) — ${d.employeeName}`,
 };
 
 export function subjectFor<T extends TemplateName>(name: T, data: TemplateData[T]): string {
