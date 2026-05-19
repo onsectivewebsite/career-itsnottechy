@@ -11,7 +11,9 @@ export default async function AdminDashboard() {
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardTitle>User management</CardTitle>
-          <p className="mt-2 text-sm text-slate-600">Full UI in Phase 7.</p>
+          <p className="mt-2 text-sm text-slate-600">
+            <Link href="/dashboard/admin/users" className="text-brand-600 hover:underline">All users</Link>
+          </p>
         </Card>
         <Card>
           <CardTitle>Audit log</CardTitle>
