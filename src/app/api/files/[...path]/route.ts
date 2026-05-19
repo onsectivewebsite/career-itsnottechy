@@ -3,6 +3,7 @@ import path from 'node:path';
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth/session';
 import { resolveStoredFilePath } from '@/lib/storage';
+import { checkFileAcl } from '@/lib/services/fileAclService';
 
 const EXT_TO_MIME: Record<string, string> = {
   '.pdf':  'application/pdf',
@@ -21,6 +22,13 @@ export async function GET(
   if (!user) return NextResponse.json({ error: 'UNAUTHENTICATED' }, { status: 401 });
 
   const relative = params.path.join('/');
+
+  const acl = await checkFileAcl({ path: relative, user });
+  if (!acl.allowed) {
+    const status = acl.reason === 'NOT_FOUND' ? 404 : 403;
+    return NextResponse.json({ error: acl.reason }, { status });
+  }
+
   const absolute = resolveStoredFilePath(relative);
   if (!absolute) return NextResponse.json({ error: 'BAD_PATH' }, { status: 400 });
   if (!fs.existsSync(absolute)) return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
