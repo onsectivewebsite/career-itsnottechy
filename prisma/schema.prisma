@@ -323,3 +323,11 @@ model PasswordResetToken {
 
   @@index([token])
 }
+
+model SystemSettings {
+  id                String   @id @default("global")
+  companyName       String   @default("ItsNotTechy")
+  defaultSenderName String   @default("ItsNotTechy Careers")
+  updatedAt         DateTime @updatedAt
+  updatedBy         String?
+}

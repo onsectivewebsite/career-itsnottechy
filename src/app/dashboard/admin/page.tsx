@@ -27,6 +27,12 @@ export default async function AdminDashboard() {
             </Link>
           </p>
         </Card>
+        <Card>
+          <CardTitle>System settings</CardTitle>
+          <p className="mt-2 text-sm text-slate-600">
+            <Link href="/dashboard/admin/settings" className="text-brand-600 hover:underline">Edit settings</Link>
+          </p>
+        </Card>
       </div>
     </div>
   );

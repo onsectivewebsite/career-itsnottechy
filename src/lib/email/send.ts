@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getTransport } from './transport';
 import { renderTemplate, subjectFor, type TemplateData, type TemplateName } from './templates';
+import { getSettings } from '@/lib/services/systemSettings';
 
 export type Attachment = {
   filename: string;
@@ -15,8 +16,9 @@ export type SendEmailArgs<T extends TemplateName> = {
   attachments?: Attachment[];
 };
 
-function fromAddress(): string {
-  const name = process.env.SMTP_FROM_NAME ?? 'ItsNotTechy Careers';
+async function fromAddress(): Promise<string> {
+  const s = await getSettings();
+  const name = process.env.SMTP_FROM_NAME ?? s.defaultSenderName;
   const email = process.env.SMTP_FROM_EMAIL ?? 'info@itsnottechy.com';
   return `${name} <${email}>`;
 }
@@ -57,7 +59,7 @@ export async function sendEmail<T extends TemplateName>(args: SendEmailArgs<T>):
     logId = log.id;
 
     await getTransport().sendMail({
-      from: fromAddress(),
+      from: await fromAddress(),
       to: args.to,
       subject,
       html,

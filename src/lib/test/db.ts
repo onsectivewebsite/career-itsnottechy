@@ -12,6 +12,7 @@ export async function resetDb(): Promise<void> {
   }
 
   const tables = [
+    'SystemSettings',
     'PasswordResetToken',
     'InviteToken',
     'AuditLog',
