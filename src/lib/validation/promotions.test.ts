@@ -38,13 +38,26 @@ describe('promotionInputSchema', () => {
     })).toThrow();
   });
 
-  it('accepts optional supportingDocUrl', () => {
+  it('accepts optional supportingDocUrl with the supporting-doc/ prefix', () => {
     const r = promotionInputSchema.parse({
       currentTitle: 'A', targetTitle: 'B',
       justification: 'long enough justification text here',
       supportingDocUrl: 'supporting-doc/promotion/x.pdf',
     });
     expect(r.supportingDocUrl).toBe('supporting-doc/promotion/x.pdf');
+  });
+
+  it('rejects a supportingDocUrl that does NOT start with supporting-doc/', () => {
+    expect(() => promotionInputSchema.parse({
+      currentTitle: 'A', targetTitle: 'B',
+      justification: 'long enough justification text here',
+      supportingDocUrl: 'resume/abc.pdf',
+    })).toThrow();
+    expect(() => promotionInputSchema.parse({
+      currentTitle: 'A', targetTitle: 'B',
+      justification: 'long enough justification text here',
+      supportingDocUrl: '../etc/passwd',
+    })).toThrow();
   });
 });
 
