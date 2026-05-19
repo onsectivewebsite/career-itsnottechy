@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { getSessionUser } from '@/lib/auth/session';
 import { requireAnyRole } from '@/lib/rbac';
 import { Card, CardTitle } from '@/components/ui/Card';
@@ -12,7 +13,9 @@ export default async function ManagerDashboard() {
         <Card>
           <CardTitle>Promotion inbox</CardTitle>
           <p className="mt-2 text-sm text-slate-600">
-            Promotion requests from your direct reports will appear here. Lands in Phase 6.
+            <Link href="/dashboard/manager/promotions" className="text-brand-600 hover:underline">
+              View requests from your direct reports
+            </Link>
           </p>
         </Card>
         <MyInterviewsWidget userId={user.id} />
