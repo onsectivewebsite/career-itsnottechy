@@ -5,9 +5,33 @@ import { saveUploadedFile, MIME_BY_PURPOSE, type Purpose } from '@/lib/storage';
 
 const purposeSchema = z.enum(['resume', 'supporting-doc']);
 
+function isSameOrigin(req: Request): boolean {
+  const origin = req.headers.get('origin');
+  const referer = req.headers.get('referer');
+  const expected = process.env.APP_URL ?? `${req.headers.get('x-forwarded-proto') ?? 'https'}://${req.headers.get('host') ?? ''}`;
+  if (!expected) return false;
+  // Accept if Origin matches APP_URL prefix OR if Referer URL has the same origin.
+  if (origin && origin === expected.replace(/\/$/, '')) return true;
+  if (referer) {
+    try {
+      const refUrl = new URL(referer);
+      const expUrl = new URL(expected);
+      if (refUrl.origin === expUrl.origin) return true;
+    } catch { /* fall through */ }
+  }
+  return false;
+}
+
+// CSRF check: tested manually. A unit test would need to set up a NextAuth
+// session mock + a NextResponse mock, which is heavier than warranted here.
+
 export async function POST(req: Request): Promise<Response> {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'UNAUTHENTICATED' }, { status: 401 });
+
+  if (!isSameOrigin(req)) {
+    return NextResponse.json({ error: 'CSRF_BLOCKED' }, { status: 403 });
+  }
 
   const form = await req.formData();
   const file = form.get('file');
