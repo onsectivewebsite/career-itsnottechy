@@ -1,6 +1,7 @@
 import { getSessionUser } from '@/lib/auth/session';
 import { requireAnyRole } from '@/lib/rbac';
 import { Card, CardTitle } from '@/components/ui/Card';
+import { MyInterviewsWidget } from '@/components/MyInterviewsWidget';
 
 export default async function EmployeeDashboard() {
   const user = requireAnyRole(await getSessionUser(), ['SUPER_ADMIN', 'HR_MANAGER', 'MANAGER', 'EMPLOYEE']);
@@ -16,6 +17,7 @@ export default async function EmployeeDashboard() {
           <CardTitle>Request a promotion</CardTitle>
           <p className="mt-2 text-sm text-slate-600">Available in Phase 6.</p>
         </Card>
+        <MyInterviewsWidget userId={user.id} />
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { listMyApplications } from '@/lib/services/applicationService';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Alert } from '@/components/ui/Alert';
+import { MyInterviewsWidget } from '@/components/MyInterviewsWidget';
 
 const STAGE_LABEL: Record<string, string> = {
   APPLIED: 'Applied',
@@ -70,6 +71,8 @@ export default async function CandidateDashboard({
           </ul>
         )}
       </Card>
+
+      <MyInterviewsWidget userId={user.id} />
     </div>
   );
 }
