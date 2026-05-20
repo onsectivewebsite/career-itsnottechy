@@ -5,15 +5,18 @@ import { sendEmail } from '@/lib/email';
 import { applicationInputSchema } from '@/lib/validation/jobs';
 import { STAGE_LABEL } from '@/lib/ats/stages';
 import type { CustomQuestion } from '@/types/customQuestions';
+import type { RequiredDocument } from '@/types/requiredDocuments';
+import { missingRequiredDocuments, createAppliedDocuments } from './documentService';
 
 export type SubmitResult =
   | { ok: true; applicationId: string }
-  | { ok: false; reason: 'JOB_NOT_OPEN' | 'DEADLINE_PASSED' | 'ALREADY_APPLIED' | 'INVALID_ANSWERS' | 'CANDIDATE_NOT_FOUND' };
+  | { ok: false; reason: 'JOB_NOT_OPEN' | 'DEADLINE_PASSED' | 'ALREADY_APPLIED' | 'INVALID_ANSWERS' | 'MISSING_DOCUMENTS' | 'CANDIDATE_NOT_FOUND' };
 
 export async function submitApplication(args: {
   jobId: string;
   candidateUserId: string;
   input: { jobId: string; resumeUrl: string; coverLetter?: string; customAnswers: Record<string, string> };
+  documents?: Record<string, string>;
 }): Promise<SubmitResult> {
   const job = await prisma.job.findUnique({ where: { id: args.jobId } });
   if (!job || job.status !== 'OPEN') return { ok: false, reason: 'JOB_NOT_OPEN' };
@@ -24,6 +27,12 @@ export async function submitApplication(args: {
   const questions = (job.customQuestions as unknown as CustomQuestion[]) ?? [];
   const parsed = applicationInputSchema(questions).safeParse(args.input);
   if (!parsed.success) return { ok: false, reason: 'INVALID_ANSWERS' };
+
+  const requiredDocuments = (job.requiredDocuments as unknown as RequiredDocument[]) ?? [];
+  const provided = args.documents ?? {};
+  if (missingRequiredDocuments(requiredDocuments, provided).length > 0) {
+    return { ok: false, reason: 'MISSING_DOCUMENTS' };
+  }
 
   const candidate = await prisma.user.findUnique({ where: { id: args.candidateUserId } });
   if (!candidate) return { ok: false, reason: 'CANDIDATE_NOT_FOUND' };
@@ -47,6 +56,12 @@ export async function submitApplication(args: {
     }
     throw err;
   }
+
+  await createAppliedDocuments({
+    applicationId: app.id,
+    requiredDocuments,
+    provided,
+  });
 
   // Per spec §8.1: if a pending referral matches, link bidirectionally,
   // bump status to CONVERTED, and notify the referrer.

@@ -217,6 +217,51 @@ describe('submitApplication — deadline + concurrency', () => {
   });
 });
 
+describe('submitApplication with required documents', () => {
+  beforeEach(() => resetDb());
+
+  async function openJobWithDocs() {
+    const hr = await prisma.user.create({ data: { email: 'hr@x.com', name: 'HR', role: 'HR_MANAGER' } });
+    const cand = await prisma.user.create({ data: { email: 'c@x.com', name: 'Cand', role: 'CANDIDATE' } });
+    const job = await prisma.job.create({
+      data: {
+        title: 'Designer', department: 'Design', locationType: 'REMOTE', type: 'FULL_TIME',
+        description: 'A description long enough to be valid.', requirements: 'Reqs.',
+        status: 'OPEN', postedById: hr.id,
+        requiredDocuments: [{ id: 'd1', name: 'Portfolio', required: true }],
+      },
+    });
+    return { cand, job };
+  }
+
+  it('rejects when a required document is missing', async () => {
+    const { cand, job } = await openJobWithDocs();
+    const r = await submitApplication({
+      jobId: job.id,
+      candidateUserId: cand.id,
+      input: { jobId: job.id, resumeUrl: 'r.pdf', customAnswers: {} },
+      documents: {},
+    });
+    expect(r).toEqual({ ok: false, reason: 'MISSING_DOCUMENTS' });
+  });
+
+  it('creates ApplicationDocument rows when required documents are provided', async () => {
+    const { cand, job } = await openJobWithDocs();
+    const r = await submitApplication({
+      jobId: job.id,
+      candidateUserId: cand.id,
+      input: { jobId: job.id, resumeUrl: 'r.pdf', customAnswers: {} },
+      documents: { d1: 'applications/x/documents/portfolio.pdf' },
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const docs = await prisma.applicationDocument.findMany({ where: { applicationId: r.applicationId } });
+    expect(docs).toHaveLength(1);
+    expect(docs[0]?.label).toBe('Portfolio');
+    expect(docs[0]?.status).toBe('SUBMITTED');
+  });
+});
+
 describe('submitApplication auto-links a matching referral', () => {
   beforeEach(async () => {
     process.env.EMAIL_TEST_MODE = 'true';

@@ -5,6 +5,7 @@ import { Card, CardTitle } from '@/components/ui/Card';
 import { getPublicJob } from '@/lib/services/jobService';
 import { getSessionUser } from '@/lib/auth/session';
 import type { CustomQuestion } from '@/types/customQuestions';
+import type { RequiredDocument } from '@/types/requiredDocuments';
 import { ApplyForm } from './ApplyForm';
 
 export const metadata = { title: 'Apply · ItsNotTechy Careers' };
@@ -40,6 +41,7 @@ export default async function ApplyPage({ params }: { params: { id: string } }) 
   }
 
   const questions = (job.customQuestions as unknown as CustomQuestion[]) ?? [];
+  const requiredDocuments = (job.requiredDocuments as unknown as RequiredDocument[]) ?? [];
 
   return (
     <>
@@ -52,7 +54,7 @@ export default async function ApplyPage({ params }: { params: { id: string } }) 
         <Card className="mt-8">
           <CardTitle>Your application</CardTitle>
           <div className="mt-4">
-            <ApplyForm jobId={job.id} questions={questions} />
+            <ApplyForm jobId={job.id} questions={questions} requiredDocuments={requiredDocuments} />
           </div>
         </Card>
       </main>

@@ -33,10 +33,22 @@ export async function submitApplicationAction(
     return { error: 'Could not read your answers. Try again.' };
   }
 
+  const documentsRaw = String(fd.get('documentsJson') ?? '{}');
+  let documents: Record<string, string> = {};
+  try {
+    const parsedDocs = JSON.parse(documentsRaw);
+    if (parsedDocs && typeof parsedDocs === 'object' && !Array.isArray(parsedDocs)) {
+      documents = parsedDocs as Record<string, string>;
+    }
+  } catch {
+    return { error: 'Could not read your uploaded documents. Try again.' };
+  }
+
   const r = await submitApplication({
     jobId,
     candidateUserId: user.id,
     input: { jobId, resumeUrl, coverLetter, customAnswers },
+    documents,
   });
 
   if (!r.ok) {
@@ -45,6 +57,7 @@ export async function submitApplicationAction(
       r.reason === 'DEADLINE_PASSED'     ? 'The deadline for this role has passed.' :
       r.reason === 'ALREADY_APPLIED'     ? "You've already applied to this role." :
       r.reason === 'CANDIDATE_NOT_FOUND' ? 'Could not load your account. Please sign in again.' :
+      r.reason === 'MISSING_DOCUMENTS'   ? 'Please upload all required documents.' :
                                            'Some answers are missing or invalid.';
     return { error: msg };
   }

@@ -3,6 +3,7 @@
 import { useFormState } from 'react-dom';
 import { useState } from 'react';
 import type { CustomQuestion } from '@/types/customQuestions';
+import type { RequiredDocument } from '@/types/requiredDocuments';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Button } from '@/components/ui/Button';
@@ -13,13 +14,40 @@ import { submitApplicationAction } from './actions';
 type FormState = { error?: string; ok?: true };
 
 export function ApplyForm({
-  jobId, questions,
-}: { jobId: string; questions: CustomQuestion[] }) {
+  jobId, questions, requiredDocuments,
+}: { jobId: string; questions: CustomQuestion[]; requiredDocuments: RequiredDocument[] }) {
   const boundAction = submitApplicationAction.bind(null, jobId);
   const [state, formAction] = useFormState(boundAction, {} as FormState);
   const [resumeUrl, setResumeUrl] = useState('');
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [docUrls, setDocUrls] = useState<Record<string, string>>({});
+
+  async function onDocChange(docId: string, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('purpose', 'application-doc');
+    fd.append('entityId', jobId);
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        setUploadError(json.error ?? 'Upload failed.');
+        return;
+      }
+      setDocUrls((prev) => ({ ...prev, [docId]: json.relativePath }));
+    } catch {
+      setUploadError('Upload failed. Try again.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  const missingRequired = requiredDocuments.some((d) => d.required && !docUrls[d.id]);
 
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -75,9 +103,32 @@ export function ApplyForm({
         />
       </div>
 
+        {requiredDocuments.length > 0 && (
+          <div className="space-y-4">
+            <p className="text-sm font-medium text-slate-900">Required documents</p>
+            {requiredDocuments.map((d) => (
+              <div key={d.id}>
+                <Label htmlFor={`doc-${d.id}`}>
+                  {d.name}{d.required ? '' : ' (optional)'}
+                </Label>
+                {d.instructions && <p className="text-xs text-slate-500">{d.instructions}</p>}
+                <input
+                  id={`doc-${d.id}`}
+                  type="file"
+                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg"
+                  onChange={(e) => onDocChange(d.id, e)}
+                  className="mt-1 block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-brand-700 hover:file:bg-brand-100"
+                />
+                {docUrls[d.id] && <p className="mt-1 text-xs text-green-700">Uploaded.</p>}
+              </div>
+            ))}
+          </div>
+        )}
+        <input type="hidden" name="documentsJson" value={JSON.stringify(docUrls)} />
+
       <CustomAnswersFields questions={questions} />
 
-      <Button type="submit" disabled={!resumeUrl || uploading}>
+      <Button type="submit" disabled={!resumeUrl || uploading || missingRequired}>
         {uploading ? 'Uploading…' : 'Submit application'}
       </Button>
     </form>
