@@ -86,6 +86,11 @@ enum EmailStatus {
   FAILED
 }
 
+enum DocumentStatus {
+  PENDING
+  SUBMITTED
+}
+
 // ============ MODELS ============
 
 model User {
@@ -110,6 +115,7 @@ model User {
   auditEntries           AuditLog[]
   inviteTokens           InviteToken[]
   passwordResets         PasswordResetToken[]
+  documentsRequested     ApplicationDocument[] @relation("DocumentsRequested")
 
   @@index([role, isActive])
 }
@@ -158,8 +164,9 @@ model Job {
   currency        String       @default("USD")
   deadline        DateTime?
   status          JobStatus    @default(DRAFT)
-  customQuestions Json         @default("[]")
-  postedById      String
+  customQuestions   Json         @default("[]")
+  requiredDocuments Json         @default("[]")
+  postedById        String
   postedBy        User         @relation("JobsPosted", fields: [postedById], references: [id])
   createdAt       DateTime     @default(now())
   closedAt        DateTime?
@@ -189,6 +196,7 @@ model Application {
 
   notes      ApplicationNote[]
   interviews Interview[]
+  documents  ApplicationDocument[]
 
   @@unique([jobId, candidateUserId])
   @@index([stage])
@@ -205,6 +213,22 @@ model ApplicationNote {
   createdAt     DateTime    @default(now())
 
   @@index([applicationId, createdAt])
+}
+
+model ApplicationDocument {
+  id            String         @id @default(cuid())
+  applicationId String
+  application   Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  label         String
+  instructions  String?        @db.Text
+  fileUrl       String?
+  status        DocumentStatus @default(SUBMITTED)
+  requestedById String?
+  requestedBy   User?          @relation("DocumentsRequested", fields: [requestedById], references: [id])
+  createdAt     DateTime       @default(now())
+  submittedAt   DateTime?
+
+  @@index([applicationId])
 }
 
 model Referral {
