@@ -13,6 +13,8 @@ import { prisma } from '@/lib/prisma';
 import { ScheduleInterviewForm } from './ScheduleInterviewForm';
 import { listInterviewsForApplication } from '@/lib/services/interviewService';
 import { cancelInterviewAction } from './cancelInterviewAction';
+import { listApplicationDocuments } from '@/lib/services/documentService';
+import { RequestDocumentForm } from './RequestDocumentForm';
 
 export default async function ApplicationDetailPage({ params }: { params: { id: string } }) {
   requireAnyRole(await getSessionUser(), ['SUPER_ADMIN', 'HR_MANAGER']);
@@ -28,6 +30,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
     orderBy: { name: 'asc' },
   });
   const interviews = await listInterviewsForApplication(params.id);
+  const documents = await listApplicationDocuments(params.id);
 
   return (
     <div className="space-y-6">
@@ -146,6 +149,41 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
         </div>
         <div className="mt-4">
           <NoteForm applicationId={app.id} />
+        </div>
+      </Card>
+
+      <Card>
+        <CardTitle>Documents</CardTitle>
+        <div className="mt-3 space-y-2">
+          {documents.length === 0 && (
+            <p className="text-sm text-slate-500">No documents for this application yet.</p>
+          )}
+          {documents.map((doc) => (
+            <div key={doc.id} className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2">
+              <div>
+                <p className="text-sm font-medium text-slate-900">{doc.label}</p>
+                {doc.instructions && <p className="text-xs text-slate-500">{doc.instructions}</p>}
+              </div>
+              {doc.status === 'SUBMITTED' && doc.fileUrl ? (
+                <a
+                  href={`/api/files/${doc.fileUrl}`}
+                  className="text-sm text-brand-600 hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Download
+                </a>
+              ) : (
+                <Badge tone="amber">Awaiting upload</Badge>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="mt-5 border-t border-slate-200 pt-4">
+          <p className="text-sm font-medium text-slate-900">Request a document</p>
+          <div className="mt-2">
+            <RequestDocumentForm applicationId={params.id} />
+          </div>
         </div>
       </Card>
     </div>
