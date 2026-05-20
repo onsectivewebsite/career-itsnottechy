@@ -8,9 +8,10 @@ export function missingRequiredDocuments(
   requiredDocuments: RequiredDocument[],
   provided: Record<string, string>,
 ): RequiredDocument[] {
-  return requiredDocuments.filter(
-    (d) => d.required && !(typeof provided[d.id] === 'string' && provided[d.id].trim() !== ''),
-  );
+  return requiredDocuments.filter((d) => {
+    const val = provided[d.id];
+    return d.required && !(typeof val === 'string' && val.trim() !== '');
+  });
 }
 
 /** Persist one SUBMITTED ApplicationDocument per provided file at apply time. */
@@ -21,15 +22,18 @@ export async function createAppliedDocuments(args: {
 }): Promise<void> {
   const now = new Date();
   const rows = args.requiredDocuments
-    .filter((d) => typeof args.provided[d.id] === 'string' && args.provided[d.id].trim() !== '')
-    .map((d) => ({
-      applicationId: args.applicationId,
-      label: d.name,
-      instructions: d.instructions ?? null,
-      fileUrl: args.provided[d.id],
-      status: 'SUBMITTED' as const,
-      submittedAt: now,
-    }));
+    .flatMap((d) => {
+      const val = args.provided[d.id];
+      if (typeof val !== 'string' || val.trim() === '') return [];
+      return [{
+        applicationId: args.applicationId,
+        label: d.name,
+        instructions: d.instructions ?? null,
+        fileUrl: val,
+        status: 'SUBMITTED' as const,
+        submittedAt: now,
+      }];
+    });
   if (rows.length > 0) {
     await prisma.applicationDocument.createMany({ data: rows });
   }

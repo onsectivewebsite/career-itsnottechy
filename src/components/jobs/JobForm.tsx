@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/Label';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { CustomQuestionsEditor } from './CustomQuestionsEditor';
+import type { RequiredDocument } from '@/types/requiredDocuments';
+import { RequiredDocumentsEditor } from './RequiredDocumentsEditor';
 
 type Defaults = {
   title: string;
@@ -21,6 +23,7 @@ type Defaults = {
   currency: string;
   deadline: string;
   customQuestions: CustomQuestion[];
+  requiredDocuments: RequiredDocument[];
 };
 
 const blank: Defaults = {
@@ -28,6 +31,7 @@ const blank: Defaults = {
   type: 'FULL_TIME', description: '', requirements: '',
   salaryMin: '', salaryMax: '', currency: 'USD', deadline: '',
   customQuestions: [],
+  requiredDocuments: [],
 };
 
 type FormState = { error?: string; fieldErrors?: Record<string, string[]>; ok?: true };
@@ -121,6 +125,14 @@ export function JobForm({
         <p className="mt-1 text-xs text-slate-500">Optional &mdash; additional questions candidates must answer for this role.</p>
         <div className="mt-2">
           <CustomQuestionsEditor initialQuestions={defaults.customQuestions} />
+        </div>
+      </div>
+
+      <div>
+        <Label>Required documents</Label>
+        <p className="mt-1 text-xs text-slate-500">Optional &mdash; documents candidates must upload when they apply to this role.</p>
+        <div className="mt-2">
+          <RequiredDocumentsEditor initialDocuments={defaults.requiredDocuments} />
         </div>
       </div>
 

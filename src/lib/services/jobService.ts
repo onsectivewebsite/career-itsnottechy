@@ -24,6 +24,7 @@ export async function createJob(args: {
       currency: parsed.data.currency,
       deadline: parsed.data.deadline ?? null,
       customQuestions: parsed.data.customQuestions as unknown as Prisma.InputJsonValue,
+      requiredDocuments: parsed.data.requiredDocuments as unknown as Prisma.InputJsonValue,
       status: 'DRAFT',
       postedById: args.postedByUserId,
     },
@@ -62,6 +63,7 @@ export async function updateJob(args: {
       currency: parsed.data.currency,
       deadline: parsed.data.deadline ?? null,
       customQuestions: parsed.data.customQuestions as unknown as Prisma.InputJsonValue,
+      requiredDocuments: parsed.data.requiredDocuments as unknown as Prisma.InputJsonValue,
     },
   });
   await recordAudit({

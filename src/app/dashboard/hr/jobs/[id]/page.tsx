@@ -61,6 +61,7 @@ export default async function EditJobPage({ params }: { params: { id: string } }
               currency: job.currency,
               deadline: job.deadline ? job.deadline.toISOString().slice(0, 10) : '',
               customQuestions: (job.customQuestions as unknown as CustomQuestion[]) ?? [],
+              requiredDocuments: (job.requiredDocuments as unknown as import('@/types/requiredDocuments').RequiredDocument[]) ?? [],
             }}
             action={updateBoundAction}
             submitLabel="Save changes"

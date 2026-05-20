@@ -17,6 +17,13 @@ function parseJobFormData(fd: FormData): JobInput | null {
   } catch {
     return null;
   }
+  const requiredDocumentsRaw = String(fd.get('requiredDocumentsJson') ?? '[]');
+  let requiredDocuments: unknown = [];
+  try {
+    requiredDocuments = JSON.parse(requiredDocumentsRaw);
+  } catch {
+    return null;
+  }
   const parsed = jobInputSchema.safeParse({
     title: fd.get('title'),
     department: fd.get('department'),
@@ -30,6 +37,7 @@ function parseJobFormData(fd: FormData): JobInput | null {
     currency: fd.get('currency') || 'USD',
     deadline: fd.get('deadline') || undefined,
     customQuestions,
+    requiredDocuments,
   });
   return parsed.success ? parsed.data : null;
 }
