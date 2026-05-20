@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { PublicNav } from '@/components/PublicNav';
+import { PublicFooter } from '@/components/PublicFooter';
 import { Button } from '@/components/ui/Button';
 
 const SERVICES = [
@@ -127,22 +128,25 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Footer — brand-dark */}
-        <footer className="bg-ink-600">
-          <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 sm:flex-row sm:items-center sm:justify-between">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo-light-cropped.png"
-              alt="It's Not Techy"
-              className="h-9 w-auto"
-            />
-            <p className="text-sm text-slate-400">
-              © {new Date().getFullYear()} It&apos;s Not Techy. Digital marketing that
-              speaks human.
+        {/* Explore the company */}
+        <section className="bg-slate-50">
+          <div className="mx-auto max-w-4xl px-6 py-20">
+            <p className="text-sm font-semibold uppercase tracking-widest text-brand-600">
+              Explore It&apos;s Not Techy
             </p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900">
+              Get to know us before you apply
+            </h2>
+            <div className="mt-8 grid gap-6 sm:grid-cols-2">
+              <ExploreCard href="/culture" title="Culture & Belonging" body="Our values, how we work, and our commitment to belonging." />
+              <ExploreCard href="/benefits" title="Benefits & Perks" body="Pay, flexible working, time off, and how we invest in growth." />
+              <ExploreCard href="/resources" title="Candidate Resources" body="How hiring works, interview tips, and common questions." />
+              <ExploreCard href="/life" title="Life & Offices" body="Eight offices across four regions, and daily life on the team." />
+            </div>
           </div>
-        </footer>
+        </section>
       </main>
+      <PublicFooter />
     </>
   );
 }
@@ -162,5 +166,17 @@ function Stat({ value, label }: { value: string; label: string }) {
       <div className="text-2xl font-bold text-brand-600">{value}</div>
       <div className="mt-1 text-sm text-slate-500">{label}</div>
     </div>
+  );
+}
+
+function ExploreCard({ href, title, body }: { href: string; title: string; body: string }) {
+  return (
+    <Link
+      href={href}
+      className="block rounded-lg border border-slate-200 bg-white p-5 transition-colors hover:border-brand-300"
+    >
+      <h3 className="font-semibold text-brand-700">{title}</h3>
+      <p className="mt-1 text-sm text-slate-600">{body}</p>
+    </Link>
   );
 }
