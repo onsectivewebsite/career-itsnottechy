@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { recordAudit } from '@/lib/audit';
 import { jobInputSchema, type JobInput } from '@/lib/validation/jobs';
+import { sanitizeRichHtml } from '@/lib/richText';
 
 export async function createJob(args: {
   input: JobInput;
@@ -17,8 +18,8 @@ export async function createJob(args: {
       locationType: parsed.data.locationType,
       locationCity: parsed.data.locationCity ?? null,
       type: parsed.data.type,
-      description: parsed.data.description,
-      requirements: parsed.data.requirements,
+      description: sanitizeRichHtml(parsed.data.description),
+      requirements: sanitizeRichHtml(parsed.data.requirements),
       salaryMin: parsed.data.salaryMin ?? null,
       salaryMax: parsed.data.salaryMax ?? null,
       currency: parsed.data.currency,
@@ -56,8 +57,8 @@ export async function updateJob(args: {
       locationType: parsed.data.locationType,
       locationCity: parsed.data.locationCity ?? null,
       type: parsed.data.type,
-      description: parsed.data.description,
-      requirements: parsed.data.requirements,
+      description: sanitizeRichHtml(parsed.data.description),
+      requirements: sanitizeRichHtml(parsed.data.requirements),
       salaryMin: parsed.data.salaryMin ?? null,
       salaryMax: parsed.data.salaryMax ?? null,
       currency: parsed.data.currency,
