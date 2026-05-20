@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
@@ -18,7 +17,6 @@ function TB({ onClick, active, children }: { onClick: () => void; active?: boole
 }
 
 export function RichTextEditor({ name, initialHtml }: { name: string; initialHtml: string }) {
-  const [html, setHtml] = useState(initialHtml);
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -31,7 +29,6 @@ export function RichTextEditor({ name, initialHtml }: { name: string; initialHtm
         class: 'prose max-w-none min-h-[160px] rounded-b-md border border-slate-300 px-3 py-2 text-sm focus:outline-none',
       },
     },
-    onUpdate: ({ editor }) => setHtml(editor.getHTML()),
   });
 
   if (!editor) return null;
@@ -60,7 +57,9 @@ export function RichTextEditor({ name, initialHtml }: { name: string; initialHtm
         <TB onClick={() => editor.chain().focus().redo().run()}>Redo</TB>
       </div>
       <EditorContent editor={editor} />
-      <input type="hidden" name={name} value={html} />
+      {/* Derived straight from the editor so it is correct even when the
+          field is submitted without being edited (e.g. editing an existing job). */}
+      <input type="hidden" name={name} value={editor.getHTML()} />
     </div>
   );
 }
