@@ -9,6 +9,7 @@ import { Alert } from '@/components/ui/Alert';
 import { CustomQuestionsEditor } from './CustomQuestionsEditor';
 import type { RequiredDocument } from '@/types/requiredDocuments';
 import { RequiredDocumentsEditor } from './RequiredDocumentsEditor';
+import { RichTextEditor } from '@/components/ui/RichTextEditor';
 
 type Defaults = {
   title: string;
@@ -89,15 +90,17 @@ export function JobForm({
       </div>
 
       <div>
-        <Label htmlFor="description">Description</Label>
-        <textarea id="description" name="description" defaultValue={defaults.description} required rows={6}
-          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+        <Label>Description</Label>
+        <div className="mt-1">
+          <RichTextEditor name="description" initialHtml={defaults.description} />
+        </div>
       </div>
 
       <div>
-        <Label htmlFor="requirements">Requirements</Label>
-        <textarea id="requirements" name="requirements" defaultValue={defaults.requirements} required rows={4}
-          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+        <Label>Requirements</Label>
+        <div className="mt-1">
+          <RichTextEditor name="requirements" initialHtml={defaults.requirements} />
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
