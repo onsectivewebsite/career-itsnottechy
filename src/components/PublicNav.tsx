@@ -4,8 +4,16 @@ export function PublicNav() {
   return (
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/" className="text-lg font-bold text-brand-700">
-          ItsNotTechy Careers
+        <Link href="/" className="flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-cropped.png"
+            alt="It's Not Techy"
+            className="h-10 w-auto"
+          />
+          <span className="hidden text-sm font-semibold text-slate-500 sm:inline">
+            Careers
+          </span>
         </Link>
         <nav className="flex items-center gap-6 text-sm">
           <Link href="/jobs" className="text-slate-700 hover:text-slate-900">

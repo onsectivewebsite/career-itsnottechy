@@ -5,3 +5,16 @@
 :root { color-scheme: light; }
 html, body { height: 100%; }
 body { @apply bg-white text-slate-900 font-sans antialiased; }
+
+/* Brand gradient text — echoes itsnottechy.com */
+.gradient-text {
+  background: linear-gradient(90deg, #00b3a4 0%, #66e7da 50%, #ffffff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+::selection {
+  background: rgba(0, 179, 164, 0.35);
+  color: #fff;
+}
