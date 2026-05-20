@@ -15,10 +15,12 @@ export function PublicNav() {
             Careers
           </span>
         </Link>
-        <nav className="flex items-center gap-6 text-sm">
-          <Link href="/jobs" className="text-slate-700 hover:text-slate-900">
-            Open roles
-          </Link>
+        <nav className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2 text-sm">
+          <Link href="/jobs" className="text-slate-700 hover:text-slate-900">Open roles</Link>
+          <Link href="/culture" className="text-slate-700 hover:text-slate-900">Culture</Link>
+          <Link href="/benefits" className="text-slate-700 hover:text-slate-900">Benefits</Link>
+          <Link href="/resources" className="text-slate-700 hover:text-slate-900">Resources</Link>
+          <Link href="/life" className="text-slate-700 hover:text-slate-900">Life</Link>
           <Link
             href="/login"
             className="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50"
