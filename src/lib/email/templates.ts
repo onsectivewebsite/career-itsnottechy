@@ -10,6 +10,13 @@ export type TemplateData = {
   'password-reset':         { name: string; resetUrl: string };
   'application-received':   { name: string; jobTitle: string; dashboardUrl: string };
   'application-status-changed': { name: string; jobTitle: string; stageLabel: string; stageBlurb: string; dashboardUrl: string };
+  'document-requested': {
+    name: string;
+    jobTitle: string;
+    documentName: string;
+    instructionsBlock: string;
+    dashboardUrl: string;
+  };
   'offer-sent':                 { name: string; jobTitle: string; dashboardUrl: string };
   'referral-submitted':     { referrerName: string; candidateName: string; jobTitle: string; dashboardUrl: string };
   'referral-status-update': { referrerName: string; candidateName: string; jobTitle: string; stageLabel: string; dashboardUrl: string };
@@ -63,6 +70,7 @@ const subjects: { [K in TemplateName]: (data: TemplateData[K]) => string } = {
   'password-reset':         () => 'Reset your ItsNotTechy Careers password',
   'application-received':   (data) => `We received your application: ${data.jobTitle}`,
   'application-status-changed': (data) => `${data.jobTitle}: ${data.stageLabel}`,
+  'document-requested': (data) => `Action needed: upload ${data.documentName}`,
   'offer-sent':                 (data) => `An offer for ${data.jobTitle}`,
   'referral-submitted':     (data) => `Referral received: ${data.candidateName} for ${data.jobTitle}`,
   'referral-status-update': (data) => `${data.candidateName} update: ${data.stageLabel}`,
