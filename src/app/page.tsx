@@ -86,7 +86,7 @@ export default function HomePage() {
             </h2>
             <p className="mt-5 text-lg text-slate-600">
               It&apos;s Not Techy is a global, full-service digital marketing agency
-              headquartered in Toronto, Canada. Founded in 2024, we help growth-stage
+              headquartered in Toronto, Canada. Founded in 2026, we help growth-stage
               brands turn marketing into a connected system — where web, brand, content,
               and paid campaigns compound rather than compete.
             </p>
@@ -107,7 +107,7 @@ export default function HomePage() {
             </p>
 
             <div className="mt-10 grid gap-6 sm:grid-cols-3">
-              <Stat value="2024" label="Founded" />
+              <Stat value="2026" label="Founded" />
               <Stat value="8" label="Global offices" />
               <Stat value="Toronto" label="Headquarters" />
             </div>
@@ -124,6 +124,36 @@ export default function HomePage() {
                   {s}
                 </span>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* How hiring works */}
+        <section className="bg-white">
+          <div className="mx-auto max-w-4xl px-6 py-16">
+            <p className="text-sm font-semibold uppercase tracking-widest text-brand-600">The process</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900">How hiring works</h2>
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <HiringStep n="1" title="Apply" body="Submit your application and any documents the role asks for." />
+              <HiringStep n="2" title="Review" body="A hiring manager reads every application by hand." />
+              <HiringStep n="3" title="Interview" body="One or two conversations with the team you'd join." />
+              <HiringStep n="4" title="Offer" body="A clear written offer — usually within two to three weeks." />
+            </div>
+          </div>
+        </section>
+
+        {/* Leadership teaser */}
+        <section className="bg-ink-600">
+          <div className="mx-auto max-w-4xl px-6 py-16 text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-white">Led by the people doing the work</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-300">
+              Flat, senior, and organised into focused departments — management here exists to remove
+              blockers and grow people.
+            </p>
+            <div className="mt-8">
+              <Link href="/leadership">
+                <Button size="lg" variant="secondary">How we&apos;re organised</Button>
+              </Link>
             </div>
           </div>
         </section>
@@ -178,5 +208,15 @@ function ExploreCard({ href, title, body }: { href: string; title: string; body:
       <h3 className="font-semibold text-brand-700">{title}</h3>
       <p className="mt-1 text-sm text-slate-600">{body}</p>
     </Link>
+  );
+}
+
+function HiringStep({ n, title, body }: { n: string; title: string; body: string }) {
+  return (
+    <div className="rounded-lg border border-slate-200 p-5">
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-600 font-bold text-white">{n}</div>
+      <h3 className="mt-3 font-semibold text-slate-900">{title}</h3>
+      <p className="mt-1 text-sm text-slate-600">{body}</p>
+    </div>
   );
 }
