@@ -6,6 +6,9 @@ import {
   missingRequiredDocuments,
   createAppliedDocuments,
   listApplicationDocuments,
+  requestDocument,
+  fulfilDocumentRequest,
+  listPendingDocumentsForCandidate,
 } from './documentService';
 
 const REQ: RequiredDocument[] = [
@@ -56,5 +59,76 @@ describe('createAppliedDocuments', () => {
     expect(docs[0]?.status).toBe('SUBMITTED');
     expect(docs[0]?.fileUrl).toBe('applications/x/documents/portfolio.pdf');
     expect(docs[0]?.requestedById).toBeNull();
+  });
+});
+
+describe('requestDocument', () => {
+  beforeEach(() => resetDb());
+
+  it('creates a PENDING document and an audit row', async () => {
+    const { hr, app } = await makeApplication();
+    const r = await requestDocument({
+      applicationId: app.id,
+      requestedById: hr.id,
+      name: 'Government ID',
+      instructions: 'A clear photo or scan',
+    });
+    expect(r.ok).toBe(true);
+    const docs = await listApplicationDocuments(app.id);
+    expect(docs).toHaveLength(1);
+    expect(docs[0]?.status).toBe('PENDING');
+    expect(docs[0]?.fileUrl).toBeNull();
+    expect(docs[0]?.requestedById).toBe(hr.id);
+    const audits = await prisma.auditLog.findMany();
+    expect(audits.some((a) => a.action === 'DOCUMENT_REQUESTED')).toBe(true);
+  });
+
+  it('returns APPLICATION_NOT_FOUND for an unknown application', async () => {
+    const { hr } = await makeApplication();
+    const r = await requestDocument({ applicationId: 'nope', requestedById: hr.id, name: 'X' });
+    expect(r).toEqual({ ok: false, reason: 'APPLICATION_NOT_FOUND' });
+  });
+});
+
+describe('fulfilDocumentRequest', () => {
+  beforeEach(() => resetDb());
+
+  it('sets the file and flips status to SUBMITTED', async () => {
+    const { hr, cand, app } = await makeApplication();
+    const req = await requestDocument({ applicationId: app.id, requestedById: hr.id, name: 'ID' });
+    if (!req.ok) throw new Error();
+    const r = await fulfilDocumentRequest({
+      documentId: req.documentId,
+      candidateUserId: cand.id,
+      fileUrl: 'applications/x/documents/id.pdf',
+    });
+    expect(r).toEqual({ ok: true });
+    const docs = await listApplicationDocuments(app.id);
+    expect(docs[0]?.status).toBe('SUBMITTED');
+    expect(docs[0]?.fileUrl).toBe('applications/x/documents/id.pdf');
+  });
+
+  it('rejects a candidate who does not own the application', async () => {
+    const { hr, app } = await makeApplication();
+    const intruder = await prisma.user.create({ data: { email: 'i@x.com', name: 'I', role: 'CANDIDATE' } });
+    const req = await requestDocument({ applicationId: app.id, requestedById: hr.id, name: 'ID' });
+    if (!req.ok) throw new Error();
+    const r = await fulfilDocumentRequest({
+      documentId: req.documentId, candidateUserId: intruder.id, fileUrl: 'x.pdf',
+    });
+    expect(r).toEqual({ ok: false, reason: 'FORBIDDEN' });
+  });
+});
+
+describe('listPendingDocumentsForCandidate', () => {
+  beforeEach(() => resetDb());
+
+  it('returns only this candidate’s PENDING documents', async () => {
+    const { hr, cand, app } = await makeApplication();
+    await requestDocument({ applicationId: app.id, requestedById: hr.id, name: 'ID' });
+    const pending = await listPendingDocumentsForCandidate(cand.id);
+    expect(pending).toHaveLength(1);
+    expect(pending[0]?.label).toBe('ID');
+    expect(pending[0]?.application.job.title).toBe('Designer');
   });
 });
