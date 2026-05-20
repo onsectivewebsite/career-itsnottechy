@@ -3,6 +3,7 @@ import { PublicNav } from '@/components/PublicNav';
 import { listPublicJobs, type PublicJobFilters } from '@/lib/services/jobService';
 import { JobFilters } from '@/components/jobs/JobFilters';
 import { Badge } from '@/components/ui/Badge';
+import { htmlToText } from '@/lib/richText';
 
 export const metadata = { title: 'Open roles · ItsNotTechy Careers' };
 
@@ -53,7 +54,7 @@ export default async function JobsPage({
                   </div>
                 </div>
                 <div className="mt-1 text-sm text-slate-500">{job.department}</div>
-                <p className="mt-3 line-clamp-2 text-sm text-slate-700">{job.description}</p>
+                <p className="mt-3 line-clamp-2 text-sm text-slate-700">{htmlToText(job.description)}</p>
               </Link>
             </li>
           ))}

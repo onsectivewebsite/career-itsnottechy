@@ -5,6 +5,7 @@ import { getPublicJob } from '@/lib/services/jobService';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import type { CustomQuestion } from '@/types/customQuestions';
+import { RichText } from '@/components/RichText';
 
 const LOCATION_LABEL: Record<string, string> = { REMOTE: 'Remote', ONSITE: 'Onsite', HYBRID: 'Hybrid' };
 const TYPE_LABEL:     Record<string, string> = { FULL_TIME: 'Full-time', PART_TIME: 'Part-time', CONTRACT: 'Contract', INTERN: 'Intern' };
@@ -32,10 +33,10 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
         <section className="prose mt-8 max-w-none">
           <h2 className="text-lg font-semibold">About the role</h2>
-          <p className="whitespace-pre-wrap text-slate-700">{job.description}</p>
+          <RichText html={job.description} />
 
           <h2 className="mt-6 text-lg font-semibold">Requirements</h2>
-          <p className="whitespace-pre-wrap text-slate-700">{job.requirements}</p>
+          <RichText html={job.requirements} />
         </section>
 
         <div className="mt-10">
