@@ -99,6 +99,16 @@ describe('MIME_BY_PURPOSE', () => {
   });
 });
 
+describe('application-doc purpose', () => {
+  it('allows PDF, Word, and image MIME types', () => {
+    const allowed = MIME_BY_PURPOSE['application-doc'];
+    expect(allowed).toContain('application/pdf');
+    expect(allowed).toContain('image/png');
+    expect(allowed).toContain('image/jpeg');
+    expect(allowed).toContain('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  });
+});
+
 describe('saveUploadedFile magic-byte check', () => {
   it('rejects a buffer whose declared MIME does not match its bytes', async () => {
     const fakeJpeg = Buffer.from('definitely-not-an-image');

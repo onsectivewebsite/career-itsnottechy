@@ -4,7 +4,7 @@ import path from 'node:path';
 
 export const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 
-export type Purpose = 'resume' | 'supporting-doc';
+export type Purpose = 'resume' | 'supporting-doc' | 'application-doc';
 
 export const MIME_BY_PURPOSE: Record<Purpose, readonly string[]> = {
   resume: [
@@ -14,6 +14,13 @@ export const MIME_BY_PURPOSE: Record<Purpose, readonly string[]> = {
   ],
   'supporting-doc': [
     'application/pdf',
+    'image/png',
+    'image/jpeg',
+  ],
+  'application-doc': [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'image/png',
     'image/jpeg',
   ],

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth/session';
 import { saveUploadedFile, MIME_BY_PURPOSE, type Purpose } from '@/lib/storage';
 
-const purposeSchema = z.enum(['resume', 'supporting-doc']);
+const purposeSchema = z.enum(['resume', 'supporting-doc', 'application-doc']);
 
 function isSameOrigin(req: Request): boolean {
   const origin = req.headers.get('origin');
