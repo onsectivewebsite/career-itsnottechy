@@ -2,7 +2,9 @@ import Link from 'next/link';
 import { getSessionUser } from '@/lib/auth/session';
 import { requireAnyRole } from '@/lib/rbac';
 import { listMyApplications } from '@/lib/services/applicationService';
+import { listPendingDocumentsForCandidate } from '@/lib/services/documentService';
 import { Card, CardTitle } from '@/components/ui/Card';
+import { PendingDocumentUpload } from '@/components/documents/PendingDocumentUpload';
 import { Badge } from '@/components/ui/Badge';
 import { Alert } from '@/components/ui/Alert';
 import { MyInterviewsWidget } from '@/components/MyInterviewsWidget';
@@ -32,6 +34,7 @@ export default async function CandidateDashboard({
 }) {
   const user = requireAnyRole(await getSessionUser(), ['SUPER_ADMIN', 'CANDIDATE']);
   const apps = await listMyApplications(user.id);
+  const pendingDocuments = await listPendingDocumentsForCandidate(user.id);
 
   return (
     <div className="space-y-6">
@@ -41,6 +44,26 @@ export default async function CandidateDashboard({
         <Alert tone="success">
           Application submitted. We&apos;ll email you as your application moves through review.
         </Alert>
+      )}
+
+      {pendingDocuments.length > 0 && (
+        <Card>
+          <CardTitle>Documents requested</CardTitle>
+          <p className="mt-1 text-sm text-slate-600">
+            HR has asked you to upload the following. Your applications keep moving once they are submitted.
+          </p>
+          <div className="mt-4 space-y-3">
+            {pendingDocuments.map((doc) => (
+              <PendingDocumentUpload
+                key={doc.id}
+                documentId={doc.id}
+                label={doc.label}
+                instructions={doc.instructions}
+                jobTitle={doc.application.job.title}
+              />
+            ))}
+          </div>
+        </Card>
       )}
 
       <Card>
