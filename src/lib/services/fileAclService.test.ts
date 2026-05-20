@@ -100,3 +100,45 @@ describe('checkFileAcl', () => {
       .toEqual({ allowed: false, reason: 'NOT_FOUND' });
   });
 });
+
+describe('checkFileAcl — application documents', () => {
+  beforeEach(() => resetDb());
+
+  async function makeDoc() {
+    const hr = await prisma.user.create({ data: { email: 'hr@x.com', name: 'HR', role: 'HR_MANAGER' } });
+    const cand = await prisma.user.create({ data: { email: 'c@x.com', name: 'C', role: 'CANDIDATE' } });
+    const job = await prisma.job.create({
+      data: {
+        title: 'Designer', department: 'Design', locationType: 'REMOTE', type: 'FULL_TIME',
+        description: 'A description long enough to be valid.', requirements: 'Reqs.',
+        status: 'OPEN', postedById: hr.id,
+      },
+    });
+    const app = await prisma.application.create({
+      data: { jobId: job.id, candidateUserId: cand.id, stage: 'APPLIED', resumeUrl: 'r.pdf' },
+    });
+    await prisma.applicationDocument.create({
+      data: { applicationId: app.id, label: 'Portfolio', fileUrl: 'applications/a/documents/p.pdf', status: 'SUBMITTED' },
+    });
+    return { cand };
+  }
+
+  it('allows the owning candidate', async () => {
+    const { cand } = await makeDoc();
+    const r = await checkFileAcl({
+      path: 'applications/a/documents/p.pdf',
+      user: { id: cand.id, role: 'CANDIDATE' },
+    });
+    expect(r).toEqual({ allowed: true });
+  });
+
+  it('forbids a different candidate', async () => {
+    await makeDoc();
+    const other = await prisma.user.create({ data: { email: 'o@x.com', name: 'O', role: 'CANDIDATE' } });
+    const r = await checkFileAcl({
+      path: 'applications/a/documents/p.pdf',
+      user: { id: other.id, role: 'CANDIDATE' },
+    });
+    expect(r).toEqual({ allowed: false, reason: 'FORBIDDEN' });
+  });
+});

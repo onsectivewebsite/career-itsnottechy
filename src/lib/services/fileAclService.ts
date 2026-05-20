@@ -45,5 +45,14 @@ export async function checkFileAcl(args: {
     return { allowed: false, reason: 'FORBIDDEN' };
   }
 
+  const appDoc = await prisma.applicationDocument.findFirst({
+    where: { fileUrl: args.path },
+    select: { application: { select: { candidateUserId: true } } },
+  });
+  if (appDoc) {
+    if (appDoc.application.candidateUserId === args.user.id) return { allowed: true };
+    return { allowed: false, reason: 'FORBIDDEN' };
+  }
+
   return { allowed: false, reason: 'NOT_FOUND' };
 }
