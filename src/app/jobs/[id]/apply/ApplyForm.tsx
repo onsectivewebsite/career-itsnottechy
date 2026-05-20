@@ -103,28 +103,28 @@ export function ApplyForm({
         />
       </div>
 
-        {requiredDocuments.length > 0 && (
-          <div className="space-y-4">
-            <p className="text-sm font-medium text-slate-900">Required documents</p>
-            {requiredDocuments.map((d) => (
-              <div key={d.id}>
-                <Label htmlFor={`doc-${d.id}`}>
-                  {d.name}{d.required ? '' : ' (optional)'}
-                </Label>
-                {d.instructions && <p className="text-xs text-slate-500">{d.instructions}</p>}
-                <input
-                  id={`doc-${d.id}`}
-                  type="file"
-                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg"
-                  onChange={(e) => onDocChange(d.id, e)}
-                  className="mt-1 block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-brand-700 hover:file:bg-brand-100"
-                />
-                {docUrls[d.id] && <p className="mt-1 text-xs text-green-700">Uploaded.</p>}
-              </div>
-            ))}
-          </div>
-        )}
-        <input type="hidden" name="documentsJson" value={JSON.stringify(docUrls)} />
+      {requiredDocuments.length > 0 && (
+        <div className="space-y-4">
+          <p className="text-sm font-medium text-slate-900">Required documents</p>
+          {requiredDocuments.map((d) => (
+            <div key={d.id}>
+              <Label htmlFor={`doc-${d.id}`}>
+                {d.name}{d.required ? '' : ' (optional)'}
+              </Label>
+              {d.instructions && <p className="text-xs text-slate-500">{d.instructions}</p>}
+              <input
+                id={`doc-${d.id}`}
+                type="file"
+                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg"
+                onChange={(e) => onDocChange(d.id, e)}
+                className="mt-1 block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-brand-700 hover:file:bg-brand-100"
+              />
+              {docUrls[d.id] && <p className="mt-1 text-xs text-green-700">Uploaded.</p>}
+            </div>
+          ))}
+        </div>
+      )}
+      <input type="hidden" name="documentsJson" value={JSON.stringify(docUrls)} />
 
       <CustomAnswersFields questions={questions} />
 

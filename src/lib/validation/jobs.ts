@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import type { CustomQuestion } from '@/types/customQuestions';
-import type { RequiredDocument } from '@/types/requiredDocuments';
 
 const baseQuestion = z.object({
   id: z.string().min(1),
@@ -50,9 +49,6 @@ export const requiredDocumentsSchema = z
       seen.add(d.id);
     }
   });
-
-// Suppress unused import warning — RequiredDocument is the public type for requiredDocumentsSchema items
-type _RequiredDocument = RequiredDocument;
 
 export const jobInputSchema = z.object({
   title:        z.string().min(1).max(200),

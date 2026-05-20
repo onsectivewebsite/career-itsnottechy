@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import type { RequiredDocument } from '@/types/requiredDocuments';
 import { recordAudit } from '@/lib/audit';
 import { sendEmail } from '@/lib/email';
+import { escapeHtml } from '@/lib/email/render';
 
 /** Required documents that have no uploaded file in `provided` (keyed by RequiredDocument.id). */
 export function missingRequiredDocuments(
@@ -93,7 +94,7 @@ export async function requestDocument(args: {
       name: app.candidate.name,
       jobTitle: app.job.title,
       documentName: args.name,
-      instructionsBlock: args.instructions ? `<p><em>${args.instructions}</em></p>` : '',
+      instructionsBlock: args.instructions ? `<p><em>${escapeHtml(args.instructions)}</em></p>` : '',
       dashboardUrl: `${process.env.APP_URL ?? ''}/dashboard/candidate`,
     },
   });
