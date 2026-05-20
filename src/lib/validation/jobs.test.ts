@@ -117,6 +117,32 @@ describe('applicationInputSchema', () => {
   });
 });
 
+describe('jobInputSchema rich-text length', () => {
+  const base = {
+    title: 'Engineer', department: 'Engineering', locationType: 'REMOTE' as const,
+    type: 'FULL_TIME' as const, currency: 'USD', customQuestions: [],
+  };
+
+  it('accepts HTML whose text content is long enough', () => {
+    const r = jobInputSchema.safeParse({
+      ...base,
+      description: '<p>We build practical software for working teams.</p>',
+      requirements: '<p>Three years backend.</p>',
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('rejects rich text with enough raw characters but no real text', () => {
+    // 28 raw characters (passes the old min(20)) but zero text content.
+    const r = jobInputSchema.safeParse({
+      ...base,
+      description: '<p></p><p></p><p></p><p></p>',
+      requirements: '<p>Three years backend.</p>',
+    });
+    expect(r.success).toBe(false);
+  });
+});
+
 describe('requiredDocumentsSchema', () => {
   it('accepts a valid list', () => {
     const r = requiredDocumentsSchema.safeParse([

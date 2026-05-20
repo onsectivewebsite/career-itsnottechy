@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { CustomQuestion } from '@/types/customQuestions';
+import { htmlToText } from '@/lib/richText';
 
 const baseQuestion = z.object({
   id: z.string().min(1),
@@ -56,8 +57,8 @@ export const jobInputSchema = z.object({
   locationType: z.enum(['REMOTE', 'ONSITE', 'HYBRID']),
   locationCity: z.string().max(120).optional(),
   type:         z.enum(['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERN']),
-  description:  z.string().min(20).max(20000),
-  requirements: z.string().min(10).max(20000),
+  description:  z.string().max(20000),
+  requirements: z.string().max(20000),
   salaryMin:    z.number().int().positive().optional(),
   salaryMax:    z.number().int().positive().optional(),
   currency:     z.string().length(3).default('USD'),
@@ -65,6 +66,12 @@ export const jobInputSchema = z.object({
   customQuestions: customQuestionsSchema,
   requiredDocuments: requiredDocumentsSchema,
 }).superRefine((data, ctx) => {
+  if (htmlToText(data.description).length < 20) {
+    ctx.addIssue({ code: 'custom', path: ['description'], message: 'Description is too short' });
+  }
+  if (htmlToText(data.requirements).length < 10) {
+    ctx.addIssue({ code: 'custom', path: ['requirements'], message: 'Requirements are too short' });
+  }
   if (data.salaryMin && data.salaryMax && data.salaryMin > data.salaryMax) {
     ctx.addIssue({ code: 'custom', path: ['salaryMin'], message: 'salaryMin must be <= salaryMax' });
   }
