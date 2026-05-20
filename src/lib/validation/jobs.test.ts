@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { jobInputSchema, customQuestionsSchema, applicationInputSchema } from './jobs';
+import { jobInputSchema, customQuestionsSchema, applicationInputSchema, requiredDocumentsSchema } from './jobs';
 
 describe('customQuestionsSchema', () => {
   it('accepts empty array', () => {
@@ -114,5 +114,38 @@ describe('applicationInputSchema', () => {
     expect(() => applicationInputSchema(questions).parse({
       jobId: 'j', resumeUrl: 'r', customAnswers: { q1: 'C' },
     })).toThrow(/valid option/);
+  });
+});
+
+describe('requiredDocumentsSchema', () => {
+  it('accepts a valid list', () => {
+    const r = requiredDocumentsSchema.safeParse([
+      { id: 'd1', name: 'Portfolio', required: true },
+      { id: 'd2', name: 'Government ID', required: false, instructions: 'PDF or photo' },
+    ]);
+    expect(r.success).toBe(true);
+  });
+
+  it('rejects an empty name', () => {
+    const r = requiredDocumentsSchema.safeParse([{ id: 'd1', name: '', required: true }]);
+    expect(r.success).toBe(false);
+  });
+
+  it('rejects duplicate ids', () => {
+    const r = requiredDocumentsSchema.safeParse([
+      { id: 'dup', name: 'A', required: true },
+      { id: 'dup', name: 'B', required: false },
+    ]);
+    expect(r.success).toBe(false);
+  });
+
+  it('defaults to an empty array when omitted from a job', () => {
+    const parsed = jobInputSchema.safeParse({
+      title: 'Engineer', department: 'Engineering', locationType: 'REMOTE',
+      type: 'FULL_TIME', description: 'A long enough description here.',
+      requirements: 'Some reqs.', currency: 'USD', customQuestions: [],
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.requiredDocuments).toEqual([]);
   });
 });

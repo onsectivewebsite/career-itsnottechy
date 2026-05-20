@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { CustomQuestion } from '@/types/customQuestions';
+import type { RequiredDocument } from '@/types/requiredDocuments';
 
 const baseQuestion = z.object({
   id: z.string().min(1),
@@ -28,6 +29,31 @@ export const customQuestionsSchema = z.array(customQuestion).max(20).superRefine
   }
 });
 
+export const requiredDocumentsSchema = z
+  .array(
+    z.object({
+      id: z.string().min(1),
+      name: z.string().min(1).max(120),
+      required: z.boolean(),
+      instructions: z.string().max(2000).optional(),
+    }),
+  )
+  .max(15)
+  .default([])
+  .superRefine((arr, ctx) => {
+    const seen = new Set<string>();
+    for (const d of arr) {
+      if (seen.has(d.id)) {
+        ctx.addIssue({ code: 'custom', message: `duplicate document id: ${d.id}` });
+        return;
+      }
+      seen.add(d.id);
+    }
+  });
+
+// Suppress unused import warning — RequiredDocument is the public type for requiredDocumentsSchema items
+type _RequiredDocument = RequiredDocument;
+
 export const jobInputSchema = z.object({
   title:        z.string().min(1).max(200),
   department:   z.string().min(1).max(120),
@@ -41,6 +67,7 @@ export const jobInputSchema = z.object({
   currency:     z.string().length(3).default('USD'),
   deadline:     z.coerce.date().optional(),
   customQuestions: customQuestionsSchema,
+  requiredDocuments: requiredDocumentsSchema,
 }).superRefine((data, ctx) => {
   if (data.salaryMin && data.salaryMax && data.salaryMin > data.salaryMax) {
     ctx.addIssue({ code: 'custom', path: ['salaryMin'], message: 'salaryMin must be <= salaryMax' });
