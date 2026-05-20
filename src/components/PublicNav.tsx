@@ -21,6 +21,7 @@ export function PublicNav() {
           <Link href="/benefits" className="text-slate-700 hover:text-slate-900">Benefits</Link>
           <Link href="/resources" className="text-slate-700 hover:text-slate-900">Resources</Link>
           <Link href="/life" className="text-slate-700 hover:text-slate-900">Life</Link>
+          <Link href="/leadership" className="text-slate-700 hover:text-slate-900">Leadership</Link>
           <Link
             href="/login"
             className="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50"
