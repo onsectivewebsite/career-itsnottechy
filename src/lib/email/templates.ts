@@ -58,6 +58,7 @@ export type TemplateData = {
     notesBlock: string;
     dashboardUrl: string;
   };
+  'job-alert': { name: string; jobTitle: string; jobUrl: string };
 };
 
 export type TemplateName = keyof TemplateData;
@@ -79,6 +80,7 @@ const subjects: { [K in TemplateName]: (data: TemplateData[K]) => string } = {
   'promotion-submitted':        (d) => `Promotion request — ${d.employeeName}: ${d.currentTitle} → ${d.targetTitle}`,
   'promotion-manager-decision': (d) => `Promotion ${d.decisionLabel.toLowerCase()} by manager — ${d.employeeName}`,
   'promotion-final-decision':   (d) => `Promotion ${d.decisionLabel.toLowerCase()} (final) — ${d.employeeName}`,
+  'job-alert': (data) => `New role at It's Not Techy: ${data.jobTitle}`,
 };
 
 export function subjectFor<T extends TemplateName>(name: T, data: TemplateData[T]): string {
