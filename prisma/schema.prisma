@@ -116,6 +116,7 @@ model User {
   inviteTokens           InviteToken[]
   passwordResets         PasswordResetToken[]
   documentsRequested     ApplicationDocument[] @relation("DocumentsRequested")
+  savedJobs              SavedJob[]           @relation("CandidateSavedJobs")
 
   @@index([role, isActive])
 }
@@ -145,9 +146,22 @@ model CandidateProfile {
   phone       String?
   location    String?
   linkedinUrl String?
-  resumeUrl   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  resumeUrl        String?
+  jobAlertsEnabled Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model SavedJob {
+  id              String   @id @default(cuid())
+  candidateUserId String
+  candidate       User     @relation("CandidateSavedJobs", fields: [candidateUserId], references: [id], onDelete: Cascade)
+  jobId           String
+  job             Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+
+  @@unique([candidateUserId, jobId])
+  @@index([candidateUserId])
 }
 
 model Job {
@@ -174,6 +188,7 @@ model Job {
 
   applications Application[]
   referrals    Referral[]
+  savedBy      SavedJob[]
 
   @@index([status, createdAt])
   @@index([department])
