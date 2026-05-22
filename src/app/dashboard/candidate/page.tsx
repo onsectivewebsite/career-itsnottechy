@@ -3,6 +3,7 @@ import { getSessionUser } from '@/lib/auth/session';
 import { requireAnyRole } from '@/lib/rbac';
 import { listMyApplications } from '@/lib/services/applicationService';
 import { listPendingDocumentsForCandidate } from '@/lib/services/documentService';
+import { listSavedJobs } from '@/lib/services/savedJobService';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { PendingDocumentUpload } from '@/components/documents/PendingDocumentUpload';
 import { Badge } from '@/components/ui/Badge';
@@ -35,6 +36,7 @@ export default async function CandidateDashboard({
   const user = requireAnyRole(await getSessionUser(), ['SUPER_ADMIN', 'CANDIDATE']);
   const apps = await listMyApplications(user.id);
   const pendingDocuments = await listPendingDocumentsForCandidate(user.id);
+  const savedJobs = await listSavedJobs(user.id);
 
   return (
     <div className="space-y-6">
@@ -89,6 +91,35 @@ export default async function CandidateDashboard({
                   </div>
                 </div>
                 <Badge tone={STAGE_TONE[app.stage]}>{STAGE_LABEL[app.stage]}</Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card>
+        <CardTitle>Saved jobs</CardTitle>
+        {savedJobs.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-600">
+            You haven&apos;t saved any roles yet.{' '}
+            <Link href="/jobs" className="font-medium text-brand-600 hover:underline">
+              Browse open roles
+            </Link>
+            .
+          </p>
+        ) : (
+          <ul className="mt-4 divide-y divide-slate-200">
+            {savedJobs.map((s) => (
+              <li key={s.id} className="flex items-center justify-between py-3">
+                <div>
+                  <Link href={`/jobs/${s.job.id}`} className="font-medium text-slate-900 hover:text-brand-700">
+                    {s.job.title}
+                  </Link>
+                  <div className="text-sm text-slate-500">{s.job.department}</div>
+                </div>
+                <Badge tone={s.job.status === 'OPEN' ? 'green' : 'neutral'}>
+                  {s.job.status === 'OPEN' ? 'Open' : 'Closed'}
+                </Badge>
               </li>
             ))}
           </ul>
