@@ -4,6 +4,9 @@ import { listPublicJobs, type PublicJobFilters } from '@/lib/services/jobService
 import { JobFilters } from '@/components/jobs/JobFilters';
 import { Badge } from '@/components/ui/Badge';
 import { htmlToText } from '@/lib/richText';
+import { getSessionUser } from '@/lib/auth/session';
+import { getSavedJobIds } from '@/lib/services/savedJobService';
+import { SaveJobButton } from '@/components/jobs/SaveJobButton';
 
 export const metadata = { title: 'Open roles · ItsNotTechy Careers' };
 
@@ -30,6 +33,8 @@ export default async function JobsPage({
     type:         narrowEnum(TYPE_VALUES,     searchParams.type),
   };
   const jobs = await listPublicJobs(filters);
+  const viewer = await getSessionUser();
+  const savedJobIds = viewer?.role === 'CANDIDATE' ? await getSavedJobIds(viewer.id) : null;
 
   return (
     <>
@@ -45,17 +50,20 @@ export default async function JobsPage({
         <ul className="mt-8 space-y-3">
           {jobs.map((job) => (
             <li key={job.id} className="rounded-lg border border-slate-200 bg-white p-5 hover:border-brand-300">
-              <Link href={`/jobs/${job.id}`} className="block">
-                <div className="flex items-center justify-between">
-                  <h2 className="font-semibold text-slate-900">{job.title}</h2>
-                  <div className="flex gap-2">
+              <div className="flex items-start justify-between gap-4">
+                <Link href={`/jobs/${job.id}`} className="block flex-1">
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-semibold text-slate-900">{job.title}</h2>
                     <Badge tone="neutral">{TYPE_LABEL[job.type]}</Badge>
                     <Badge tone="blue">{LOCATION_LABEL[job.locationType]}{job.locationCity ? ` · ${job.locationCity}` : ''}</Badge>
                   </div>
-                </div>
-                <div className="mt-1 text-sm text-slate-500">{job.department}</div>
-                <p className="mt-3 line-clamp-2 text-sm text-slate-700">{htmlToText(job.description)}</p>
-              </Link>
+                  <div className="mt-1 text-sm text-slate-500">{job.department}</div>
+                  <p className="mt-3 line-clamp-2 text-sm text-slate-700">{htmlToText(job.description)}</p>
+                </Link>
+                {savedJobIds && (
+                  <SaveJobButton jobId={job.id} initialSaved={savedJobIds.has(job.id)} />
+                )}
+              </div>
             </li>
           ))}
           {jobs.length === 0 && (
