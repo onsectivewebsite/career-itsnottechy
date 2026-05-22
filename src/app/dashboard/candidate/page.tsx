@@ -4,11 +4,13 @@ import { requireAnyRole } from '@/lib/rbac';
 import { listMyApplications } from '@/lib/services/applicationService';
 import { listPendingDocumentsForCandidate } from '@/lib/services/documentService';
 import { listSavedJobs } from '@/lib/services/savedJobService';
+import { prisma } from '@/lib/prisma';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { PendingDocumentUpload } from '@/components/documents/PendingDocumentUpload';
 import { Badge } from '@/components/ui/Badge';
 import { Alert } from '@/components/ui/Alert';
 import { MyInterviewsWidget } from '@/components/MyInterviewsWidget';
+import { JobAlertsToggle } from './JobAlertsToggle';
 
 const STAGE_LABEL: Record<string, string> = {
   APPLIED: 'Applied',
@@ -37,6 +39,11 @@ export default async function CandidateDashboard({
   const apps = await listMyApplications(user.id);
   const pendingDocuments = await listPendingDocumentsForCandidate(user.id);
   const savedJobs = await listSavedJobs(user.id);
+  const candidateProfile = await prisma.candidateProfile.findUnique({
+    where: { userId: user.id },
+    select: { jobAlertsEnabled: true },
+  });
+  const jobAlertsEnabled = candidateProfile?.jobAlertsEnabled ?? false;
 
   return (
     <div className="space-y-6">
@@ -124,6 +131,16 @@ export default async function CandidateDashboard({
             ))}
           </ul>
         )}
+      </Card>
+
+      <Card>
+        <CardTitle>Job alerts</CardTitle>
+        <div className="mt-2 flex items-center justify-between gap-4">
+          <p className="text-sm text-slate-600">
+            Get an email whenever a new role is posted.
+          </p>
+          <JobAlertsToggle initialEnabled={jobAlertsEnabled} />
+        </div>
       </Card>
 
       <MyInterviewsWidget userId={user.id} />
