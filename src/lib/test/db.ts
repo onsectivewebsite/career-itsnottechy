@@ -23,6 +23,7 @@ export async function resetDb(): Promise<void> {
     'ApplicationDocument',
     'Application',
     'Referral',
+    'SavedJob',
     'Job',
     'CandidateProfile',
     'Employee',
