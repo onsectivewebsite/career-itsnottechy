@@ -197,3 +197,26 @@ describe('listJobsForHr', () => {
     expect(list).toHaveLength(2);
   });
 });
+
+describe('publishJob job alerts', () => {
+  beforeEach(() => resetDb());
+
+  it('emails alerts-enabled candidates on first publish, not on re-open', async () => {
+    const hr = await makeHr();
+    await prisma.user.create({
+      data: { email: 'sub@x.com', name: 'Sub', role: 'CANDIDATE',
+        candidateProfile: { create: { jobAlertsEnabled: true } } },
+    });
+    const created = await createJob({ input: jobFixture, postedByUserId: hr.id });
+    if (!created.ok) throw new Error();
+
+    await publishJob({ jobId: created.jobId, actorUserId: hr.id });
+    const afterPublish = await prisma.emailLog.count({ where: { template: 'job-alert' } });
+    expect(afterPublish).toBe(1);
+
+    await closeJob({ jobId: created.jobId, actorUserId: hr.id });
+    await publishJob({ jobId: created.jobId, actorUserId: hr.id });
+    const afterReopen = await prisma.emailLog.count({ where: { template: 'job-alert' } });
+    expect(afterReopen).toBe(1); // re-opening a CLOSED job does not re-notify
+  });
+});

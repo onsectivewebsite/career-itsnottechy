@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { recordAudit } from '@/lib/audit';
 import { jobInputSchema, type JobInput } from '@/lib/validation/jobs';
 import { sanitizeRichHtml } from '@/lib/richText';
+import { notifyNewJob } from './jobAlertService';
 
 export async function createJob(args: {
   input: JobInput;
@@ -80,17 +81,25 @@ export async function publishJob(args: {
   jobId: string;
   actorUserId: string;
 }): Promise<{ ok: true } | { ok: false; reason: 'NOT_FOUND' }> {
-  const r = await prisma.job.updateMany({
+  const job = await prisma.job.findUnique({ where: { id: args.jobId } });
+  if (!job) return { ok: false, reason: 'NOT_FOUND' };
+
+  const wasDraft = job.status === 'DRAFT';
+  await prisma.job.update({
     where: { id: args.jobId },
     data: { status: 'OPEN', closedAt: null },
   });
-  if (r.count !== 1) return { ok: false, reason: 'NOT_FOUND' };
   await recordAudit({
     actorUserId: args.actorUserId,
     action: 'JOB_PUBLISHED',
     entityType: 'Job',
     entityId: args.jobId,
   });
+
+  // Alerts fire once, on the first publish — never when re-opening a closed role.
+  if (wasDraft) {
+    await notifyNewJob({ id: job.id, title: job.title });
+  }
   return { ok: true };
 }
 
