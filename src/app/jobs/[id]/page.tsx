@@ -6,6 +6,9 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import type { CustomQuestion } from '@/types/customQuestions';
 import { RichText } from '@/components/RichText';
+import { getSessionUser } from '@/lib/auth/session';
+import { getSavedJobIds } from '@/lib/services/savedJobService';
+import { SaveJobButton } from '@/components/jobs/SaveJobButton';
 
 const LOCATION_LABEL: Record<string, string> = { REMOTE: 'Remote', ONSITE: 'Onsite', HYBRID: 'Hybrid' };
 const TYPE_LABEL:     Record<string, string> = { FULL_TIME: 'Full-time', PART_TIME: 'Part-time', CONTRACT: 'Contract', INTERN: 'Intern' };
@@ -14,6 +17,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
   const job = await getPublicJob(params.id);
   if (!job) notFound();
   const customQuestions = (job.customQuestions as unknown as CustomQuestion[]) ?? [];
+
+  const viewer = await getSessionUser();
+  const savedJobIds = viewer?.role === 'CANDIDATE' ? await getSavedJobIds(viewer.id) : null;
 
   return (
     <>
@@ -30,6 +36,12 @@ export default async function JobDetailPage({ params }: { params: { id: string }
             <Badge tone="green">{job.currency} {job.salaryMin.toLocaleString()} – {job.salaryMax.toLocaleString()}</Badge>
           )}
         </div>
+
+        {savedJobIds && (
+          <div className="mt-4">
+            <SaveJobButton jobId={job.id} initialSaved={savedJobIds.has(job.id)} />
+          </div>
+        )}
 
         <section className="prose mt-8 max-w-none">
           <h2 className="text-lg font-semibold">About the role</h2>
