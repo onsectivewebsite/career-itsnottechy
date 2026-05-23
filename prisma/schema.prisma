@@ -117,6 +117,7 @@ model User {
   passwordResets         PasswordResetToken[]
   documentsRequested     ApplicationDocument[] @relation("DocumentsRequested")
   savedJobs              SavedJob[]           @relation("CandidateSavedJobs")
+  emailTemplatesCreated  EmailTemplate[]      @relation("EmailTemplatesCreated")
 
   @@index([role, isActive])
 }
@@ -323,6 +324,17 @@ model EmailLog {
 
   @@index([status, createdAt])
   @@index([toEmail])
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  subject     String
+  body        String   @db.Text
+  createdById String?
+  createdBy   User?    @relation("EmailTemplatesCreated", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model AuditLog {
