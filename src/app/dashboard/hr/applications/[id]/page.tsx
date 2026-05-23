@@ -15,6 +15,9 @@ import { listInterviewsForApplication } from '@/lib/services/interviewService';
 import { cancelInterviewAction } from './cancelInterviewAction';
 import { listApplicationDocuments } from '@/lib/services/documentService';
 import { RequestDocumentForm } from './RequestDocumentForm';
+import { listTemplates } from '@/lib/services/emailTemplateService';
+import { buildEmailVars } from '@/lib/email/vars';
+import { SendEmailForm } from './SendEmailForm';
 
 export default async function ApplicationDetailPage({ params }: { params: { id: string } }) {
   requireAnyRole(await getSessionUser(), ['SUPER_ADMIN', 'HR_MANAGER']);
@@ -31,6 +34,13 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
   });
   const interviews = await listInterviewsForApplication(params.id);
   const documents = await listApplicationDocuments(params.id);
+  const emailTemplates = await listTemplates();
+  const emailVars = buildEmailVars({
+    kind: 'application',
+    candidate: { name: app.candidate.name },
+    job: { title: app.job.title },
+    stageLabel: STAGE_LABEL[app.stage],
+  });
 
   return (
     <div className="space-y-6">
@@ -184,6 +194,20 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
           <div className="mt-2">
             <RequestDocumentForm applicationId={params.id} />
           </div>
+        </div>
+      </Card>
+
+      <Card>
+        <CardTitle>Send email</CardTitle>
+        <p className="mt-1 text-sm text-slate-600">
+          Pick a template, edit if needed, and send to {app.candidate.email}.
+        </p>
+        <div className="mt-4">
+          <SendEmailForm
+            applicationId={params.id}
+            templates={emailTemplates.map((t) => ({ id: t.id, name: t.name, subject: t.subject, body: t.body }))}
+            vars={emailVars}
+          />
         </div>
       </Card>
     </div>
