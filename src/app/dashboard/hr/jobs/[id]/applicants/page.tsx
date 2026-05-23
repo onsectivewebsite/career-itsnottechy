@@ -1,13 +1,10 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import type { AppStage } from '@prisma/client';
 import { getSessionUser } from '@/lib/auth/session';
 import { requireAnyRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { listApplicationsForJob } from '@/lib/services/atsService';
-import { STAGE_ORDER, STAGE_LABEL, STAGE_TONE } from '@/lib/ats/stages';
-import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
+import { BulkApplicantsByStage, type AppRow } from './BulkApplicantsByStage';
 
 export default async function ApplicantsPage({ params }: { params: { id: string } }) {
   requireAnyRole(await getSessionUser(), ['SUPER_ADMIN', 'HR_MANAGER']);
@@ -16,10 +13,12 @@ export default async function ApplicantsPage({ params }: { params: { id: string 
 
   const apps = await listApplicationsForJob(params.id);
 
-  const byStage: Record<AppStage, typeof apps> = {
-    APPLIED: [], SCREENING: [], INTERVIEW: [], OFFER: [], HIRED: [], REJECTED: [],
-  };
-  for (const a of apps) byStage[a.stage].push(a);
+  const rows: AppRow[] = apps.map((a) => ({
+    id: a.id,
+    stage: a.stage,
+    createdAt: a.createdAt,
+    candidate: { name: a.candidate.name, email: a.candidate.email },
+  }));
 
   return (
     <div className="space-y-6">
@@ -32,37 +31,7 @@ export default async function ApplicantsPage({ params }: { params: { id: string 
         <Link href={`/dashboard/hr/jobs/${params.id}`} className="text-sm text-slate-600 hover:text-slate-900">Edit job</Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {STAGE_ORDER.map((stage) => (
-          <Card key={stage}>
-            <div className="flex items-center justify-between">
-              <Badge tone={STAGE_TONE[stage]}>{STAGE_LABEL[stage]}</Badge>
-              <span className="text-xs text-slate-500">{byStage[stage].length}</span>
-            </div>
-            <ul className="mt-3 space-y-2">
-              {byStage[stage].map((app) => (
-                <li key={app.id}>
-                  <Link
-                    href={`/dashboard/hr/applications/${app.id}`}
-                    className="block rounded-md border border-slate-200 px-3 py-2 text-sm hover:border-brand-300 hover:bg-slate-50"
-                  >
-                    <div className="font-medium text-slate-900">{app.candidate.name}</div>
-                    <div className="text-xs text-slate-500">{app.candidate.email}</div>
-                    <div className="mt-1 text-xs text-slate-400">
-                      Applied {app.createdAt.toISOString().slice(0, 10)}
-                    </div>
-                  </Link>
-                </li>
-              ))}
-              {byStage[stage].length === 0 && (
-                <li className="rounded-md border border-dashed border-slate-200 px-3 py-2 text-xs text-slate-400">
-                  No one here.
-                </li>
-              )}
-            </ul>
-          </Card>
-        ))}
-      </div>
+      <BulkApplicantsByStage apps={rows} />
     </div>
   );
 }
