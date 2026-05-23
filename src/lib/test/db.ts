@@ -27,6 +27,7 @@ export async function resetDb(): Promise<void> {
     'Job',
     'CandidateProfile',
     'Employee',
+    'EmailTemplate',
     'User',
   ];
 
