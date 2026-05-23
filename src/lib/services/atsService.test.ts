@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { resetDb } from '@/lib/test/db';
 import { createJob, publishJob } from './jobService';
 import { submitApplication } from './applicationService';
-import { isValidTransition, moveStage, getApplicationForHr, listApplicationsForJob } from './atsService';
+import { isValidTransition, moveStage, getApplicationForHr, listApplicationsForJob, bulkMoveStage } from './atsService';
 import { __recordedSendsForTests, __resetTransportForTests } from '@/lib/email/transport';
 
 const baseJob = {
@@ -184,5 +184,81 @@ describe('moveStage notifies referrer when application has a referral', () => {
     expect(sends.length).toBe(2);
     expect(sends.some((s) => s.to === cand.email)).toBe(true);
     expect(sends.some((s) => s.to === emp.email)).toBe(true);
+  });
+});
+
+describe('bulkMoveStage', () => {
+  beforeEach(() => resetDb());
+
+  async function setupNApplicants(n: number) {
+    const hr = await prisma.user.create({ data: { email: 'hr@x.com', name: 'HR', role: 'HR_MANAGER' } });
+    const j = await createJob({ input: baseJob, postedByUserId: hr.id });
+    if (!j.ok) throw new Error();
+    await publishJob({ jobId: j.jobId, actorUserId: hr.id });
+    const ids: string[] = [];
+    for (let i = 0; i < n; i++) {
+      const cand = await prisma.user.create({
+        data: { email: `c${i}@x.com`, name: `Cand ${i}`, role: 'CANDIDATE', candidateProfile: { create: {} } },
+      });
+      const a = await submitApplication({
+        jobId: j.jobId, candidateUserId: cand.id,
+        input: { jobId: j.jobId, resumeUrl: 'r.pdf', customAnswers: {} },
+      });
+      if (!a.ok) throw new Error();
+      ids.push(a.applicationId);
+    }
+    return { hr, applicationIds: ids };
+  }
+
+  it('advance: moves every APPLIED app to SCREENING', async () => {
+    const { hr, applicationIds } = await setupNApplicants(3);
+    const r = await bulkMoveStage({
+      applicationIds, mode: 'advance', actorUserId: hr.id,
+    });
+    expect(r.applied).toBe(3);
+    expect(r.skipped).toEqual([]);
+    for (const id of applicationIds) {
+      const app = await prisma.application.findUnique({ where: { id } });
+      expect(app?.stage).toBe('SCREENING');
+    }
+  });
+
+  it('advance: terminal apps are skipped with INVALID_TRANSITION', async () => {
+    const { hr, applicationIds } = await setupNApplicants(2);
+    // Force one to HIRED via the canonical pipeline (APPLIED→SCREENING→INTERVIEW→OFFER→HIRED).
+    const [first, second] = applicationIds;
+    for (const to of ['SCREENING', 'INTERVIEW', 'OFFER', 'HIRED'] as const) {
+      const r = await moveStage({ applicationId: first, toStage: to, actorUserId: hr.id });
+      if (!r.ok) throw new Error(`could not move ${first} to ${to}: ${r.reason}`);
+    }
+    const r = await bulkMoveStage({
+      applicationIds: [first, second], mode: 'advance', actorUserId: hr.id,
+    });
+    expect(r.applied).toBe(1);
+    expect(r.skipped).toHaveLength(1);
+    expect(r.skipped[0]?.applicationId).toBe(first);
+    expect(r.skipped[0]?.reason).toBe('INVALID_TRANSITION');
+    const secondApp = await prisma.application.findUnique({ where: { id: second } });
+    expect(secondApp?.stage).toBe('SCREENING');
+  });
+
+  it('set REJECTED: moves all non-terminal apps to REJECTED', async () => {
+    const { hr, applicationIds } = await setupNApplicants(2);
+    const r = await bulkMoveStage({
+      applicationIds, mode: 'set', toStage: 'REJECTED', actorUserId: hr.id,
+    });
+    expect(r.applied).toBe(2);
+    for (const id of applicationIds) {
+      const app = await prisma.application.findUnique({ where: { id } });
+      expect(app?.stage).toBe('REJECTED');
+    }
+  });
+
+  it('unknown id is skipped with NOT_FOUND', async () => {
+    const { hr } = await setupNApplicants(1);
+    const r = await bulkMoveStage({
+      applicationIds: ['no-such-id'], mode: 'advance', actorUserId: hr.id,
+    });
+    expect(r).toEqual({ applied: 0, skipped: [{ applicationId: 'no-such-id', reason: 'NOT_FOUND' }] });
   });
 });

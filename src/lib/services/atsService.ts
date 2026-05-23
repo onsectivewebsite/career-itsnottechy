@@ -2,7 +2,7 @@ import type { AppStage } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { recordAudit } from '@/lib/audit';
 import { sendEmail } from '@/lib/email';
-import { isValidTransition, STAGE_LABEL as STAGE_NAME } from '@/lib/ats/stages';
+import { FORWARD, isValidTransition, STAGE_LABEL as STAGE_NAME } from '@/lib/ats/stages';
 import { notifyReferrerOnStageChange } from '@/lib/services/referralService';
 
 // Re-export so existing imports `import { isValidTransition } from './atsService'` keep working.
@@ -121,6 +121,60 @@ export async function listActiveApplicationsForHr() {
       referral: { select: { id: true } },
     },
   });
+}
+
+export type BulkMoveResult = {
+  applied: number;
+  skipped: { applicationId: string; reason: 'NOT_FOUND' | 'INVALID_TRANSITION' }[];
+};
+
+export type BulkMoveInput = {
+  applicationIds: string[];
+  mode: 'advance' | 'set';
+  toStage?: AppStage;
+  actorUserId: string;
+};
+
+/**
+ * Sequentially move every selected application through the existing single-app
+ * `moveStage` (atomic claim + audit + stage email). Returns a per-app summary;
+ * never throws on a single failed item.
+ */
+export async function bulkMoveStage(args: BulkMoveInput): Promise<BulkMoveResult> {
+  const skipped: BulkMoveResult['skipped'] = [];
+  let applied = 0;
+
+  for (const id of args.applicationIds) {
+    const app = await prisma.application.findUnique({
+      where: { id },
+      select: { stage: true },
+    });
+    if (!app) {
+      skipped.push({ applicationId: id, reason: 'NOT_FOUND' });
+      continue;
+    }
+
+    let target: AppStage | undefined;
+    if (args.mode === 'advance') {
+      target = FORWARD[app.stage][0]; // first forward = the natural advance, never REJECTED for non-terminal stages
+    } else {
+      target = args.toStage;
+    }
+
+    if (!target) {
+      skipped.push({ applicationId: id, reason: 'INVALID_TRANSITION' });
+      continue;
+    }
+
+    const r = await moveStage({ applicationId: id, toStage: target, actorUserId: args.actorUserId });
+    if (r.ok) {
+      applied++;
+    } else {
+      skipped.push({ applicationId: id, reason: r.reason });
+    }
+  }
+
+  return { applied, skipped };
 }
 
 export async function getApplicationForHr(applicationId: string) {
